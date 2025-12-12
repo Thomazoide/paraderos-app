@@ -6,7 +6,7 @@ import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 
 export default function LoginScreen() {
@@ -48,6 +48,16 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
+
+  useEffect( () => {
+    const checkToken = async () => {
+      const tokenExists = await AsyncStorage.getItem("token");
+      if(tokenExists){
+        router.replace("/(tabs)/orders");
+      }
+    }
+    checkToken();
+  }, [] );
 
   return (
     <ThemedView style={styles.container}>
