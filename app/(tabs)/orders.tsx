@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ACCESS_TOKEN, ROUTE_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
-import { WorkOrder } from '@/types/entitites';
+import { Route, WorkOrder } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,14 +46,46 @@ export default function OrdersScreen() {
     }
   };
 
+  const fetchRoute = async (workOrder: WorkOrder) => {
+    try {
+      const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
+      if(!accessToken) throw new Error("Sesión expirada");
+      const endpoint = `${BACKEND_URL}${ENDPOINTS.routeByID(workOrder.route_id!)}`;
+      const config = GetRequestConfig("GET", "JSON", undefined, accessToken);
+      const response = await (await fetch(endpoint, config)).json() as ResponsePayload<Route>;
+      if(response.error) throw new Error(response.message);
+      AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(workOrder));
+      AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
+    } catch (err) {
+      Alert.alert("Error", (err as Error).message);
+    }
+  }
+
+  
+
   useFocusEffect(
     useCallback(() => {
       fetchOrders();
     }, [])
   );
 
-  const handleTakeOrder = async (orderId: number) => {
-    Alert.alert('Info', 'Funcionalidad de tomar orden pendiente de implementar');
+
+  //IMPORTANTE TERMINAR ESTO MAÑANA MARTES 16 DE DICIEMBRE
+  const handleTakeOrder = async (workOrder: WorkOrder) => {
+    try {
+      //Obtener token de acceso
+      const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
+      if(!accessToken) throw new Error("Sesión expirada");
+      //Guardar los datos asincronos
+      fetchRoute(workOrder);
+      const updatedWO = workOrder;
+      //Actualizar los datos de la ot en bbdd para que sea asgnada a un usuario de terreno
+      const endpoint = `${BACKEND_URL}${ENDPOINTS.workOrders}`;
+      const config = GetRequestConfig("GET", "JSON", JSON.stringify(updatedWO), accessToken);
+    } catch (err) {
+      
+    }
+
   };
 
   const renderItem = ({ item }: { item: WorkOrder }) => {

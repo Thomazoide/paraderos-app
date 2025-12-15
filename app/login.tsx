@@ -1,11 +1,14 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ACCESS_TOKEN, USER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
+import { User } from '@/types/entitites';
 import { LoginPayload } from '@/types/request-payloads';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
 import { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 
@@ -36,7 +39,10 @@ export default function LoginScreen() {
         Alert.alert('Error', data.message || 'Error al iniciar sesión');
       } else if (data.data) {
         const token = data.data;
-        await AsyncStorage.setItem('token', token);
+        const userData: Partial<User> = jwtDecode(token);
+        console.log(userData);
+        AsyncStorage.setItem(USER_DATA, JSON.stringify(userData));
+        await AsyncStorage.setItem(ACCESS_TOKEN, token);
         router.replace('/(tabs)/orders');
       } else {
         Alert.alert('Error', 'Respuesta inesperada del servidor');
@@ -53,7 +59,26 @@ export default function LoginScreen() {
     const checkToken = async () => {
       const tokenExists = await AsyncStorage.getItem("token");
       if(tokenExists){
-        router.replace("/(tabs)/orders");
+        try {
+          const userData: Partial<User> = jwtDecode(tokenExists);
+          console.log(userData);
+          AsyncStorage.setItem(USER_DATA, JSON.stringify(userData));
+          const payload = JSON.stringify({
+            token: tokenExists
+          });
+          const endpoint = `${BACKEND_URL}${ENDPOINTS.authVerifyToken}`;
+          const config = GetRequestConfig("POST", "JSON", payload);
+          const response = await (await fetch(endpoint, config)).json() as ResponsePayload<boolean>;
+          if(response.error) throw new Error(response.message);
+          if(response.data){
+            router.replace("/(tabs)/orders");
+          } else {
+            throw new Error(response.message);
+          }
+        } catch (err) {
+          Alert.alert("Error", (err as Error).message)
+          AsyncStorage.removeItem(ACCESS_TOKEN);
+        }
       }
     }
     checkToken();

@@ -109,6 +109,13 @@ export default function BusStopsScreen() {
               <View style={[styles.item, { borderBottomColor: Colors[theme].icon }]}>
                 <ThemedText type="subtitle">{item.codigo}</ThemedText>
                 <ThemedText>{item.description}</ThemedText>
+                <View style={styles.itemFooter}>
+                  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]}>
+                    <ThemedText style={[{color: Colors[theme].background, fontWeight: 'bold'}]}>
+                      Crear formulario
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
             contentContainerStyle={styles.listContent}
@@ -174,5 +181,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    borderWidth: 2,
+    borderColor: "#bfbe24"
   },
+  itemFooter: {
+    padding: 10,
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "flex-end"
+  },
+  formButton: {
+    padding: 5,
+    borderRadius:10
+  }
 });
