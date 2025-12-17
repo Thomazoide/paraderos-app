@@ -1,13 +1,15 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MAP_DEFAULT_CENTER } from '@/constants/center';
+import { ROUTE_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BusStop } from '@/types/entitites';
+import { BusStop, Route } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StarIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -18,6 +20,7 @@ export default function BusStopsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isMapMode, setIsMapMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [routeData, setRouteData] = useState<Route | null>(null);
   const colorScheme = useColorScheme();
 
   const filteredBusStops = busStops.filter(stop => 
@@ -33,7 +36,11 @@ export default function BusStopsScreen() {
         const response = await fetch(`${BACKEND_URL}${ENDPOINTS.busStops}`, config);
         const data: ResponsePayload<BusStop[]> = await response.json();
         console.log(data);
-
+        const cachedRouteData = await AsyncStorage.getItem(ROUTE_DATA);
+        if(cachedRouteData) {
+          const parsedRouteData = JSON.parse(cachedRouteData) as Route;
+          setRouteData(parsedRouteData);
+        }
         if (!response.ok) {
           throw new Error(data.message || 'Error al obtener los paraderos');
         }
@@ -107,7 +114,7 @@ export default function BusStopsScreen() {
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
               <View style={[styles.item, { borderBottomColor: Colors[theme].icon }]}>
-                <ThemedText type="subtitle">{item.codigo}</ThemedText>
+                <ThemedText type="subtitle"> {routeData && item.id === routeData.route_points.filter( (id) => id === item.id)[0] ? <StarIcon/> : null} {item.codigo}</ThemedText>
                 <ThemedText>{item.description}</ThemedText>
                 <View style={styles.itemFooter}>
                   <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]}>

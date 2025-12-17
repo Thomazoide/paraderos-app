@@ -26,4 +26,4 @@ export const ENDPOINTS = {
     visitFormByRouteID: (id: number) => `/formularios/v1/ruta/${id}`, // GET
     visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}` // GET
 };
-export const BACKEND_URL = "http://192.168.20.54:3000";
+export const BACKEND_URL = "http://192.168.1.2:3000";
