@@ -1,14 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import VisitFormComponent from '@/components/visit-form';
 import { MAP_DEFAULT_CENTER } from '@/constants/center';
-import { ROUTE_DATA } from '@/constants/client-data';
+import { ROUTE_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BusStop, Route } from '@/types/entitites';
+import { BusStop, Route, WorkOrder } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CheckBox from "expo-checkbox";
 import { StarIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -21,15 +23,25 @@ export default function BusStopsScreen() {
   const [isMapMode, setIsMapMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [routeData, setRouteData] = useState<Route | null>(null);
+  const [showStopsFromRoute, setShowStopsFromRoute] = useState<boolean>(false);
+  const [routeBusStops, setRouteBusStops] = useState<BusStop[] | null>(null);
+  const [selectedBusStop, setSelectedBusStop] = useState<BusStop>();
+  const [workOrderData, setWorkOrderData] = useState<WorkOrder>();
   const colorScheme = useColorScheme();
 
   const filteredBusStops = busStops.filter(stop => 
     stop.codigo.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const cancelAction = () => {
+    setSelectedBusStop(undefined);
+  };
+
   useEffect(() => {
     const fetchBusStops = async () => {
       try {
+        const woData = await AsyncStorage.getItem(WORK_ORDER_DATA);
+        if(woData && woData !== "") setWorkOrderData(JSON.parse(woData) as WorkOrder);
         const savedToken = await AsyncStorage.getItem("token");
         if(!savedToken) throw new Error("Sin token de acceso");
         const config = GetRequestConfig('GET', 'JSON', undefined, savedToken);
@@ -57,6 +69,21 @@ export default function BusStopsScreen() {
     fetchBusStops();
   }, []);
 
+  useEffect( () => {
+    const filterPerRoute = () => {
+      const persistentData = busStops;
+      const routeIDS = new Set(Array.from(routeData!.route_points));
+      const newList = persistentData.filter( (bs) => routeIDS.has(bs.id) );
+      setRouteBusStops(newList);
+    }
+    if(showStopsFromRoute){
+      filterPerRoute();
+    } else {
+      setRouteBusStops(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStopsFromRoute] );
+
   if (loading) {
     return (
       <ThemedView style={styles.centered}>
@@ -78,7 +105,8 @@ export default function BusStopsScreen() {
   const theme = colorScheme ?? 'light';
 
   return (
-    <View style={styles.container}>
+     !selectedBusStop ? 
+      <View style={styles.container}>
       {isMapMode ? (
         <MapView
           provider={PROVIDER_GOOGLE}
@@ -108,16 +136,23 @@ export default function BusStopsScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {
+              routeData ?
+              <View style={styles.checkboxContainer} >
+                <CheckBox style={styles.checkbox} value={showStopsFromRoute} onValueChange={setShowStopsFromRoute} color={showStopsFromRoute ? Colors[theme].tint : undefined} /> 
+                <ThemedText>Ver paraderos de la ruta activa</ThemedText>
+              </View> : null
+            }
           </View>
           <FlatList
-            data={filteredBusStops}
+            data={ routeBusStops ? routeBusStops : filteredBusStops}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
               <View style={[styles.item, { borderBottomColor: Colors[theme].icon }]}>
-                <ThemedText type="subtitle"> {routeData && item.id === routeData.route_points.filter( (id) => id === item.id)[0] ? <StarIcon/> : null} {item.codigo}</ThemedText>
+                <ThemedText type="subtitle"> {routeData && item.id === routeData.route_points.filter( (id) => id === item.id)[0] ? <StarIcon color={Colors[theme].text}/> : null} {item.codigo}</ThemedText>
                 <ThemedText>{item.description}</ThemedText>
                 <View style={styles.itemFooter}>
-                  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]}>
+                  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]} onPress={() => setSelectedBusStop(item)} >
                     <ThemedText style={[{color: Colors[theme].background, fontWeight: 'bold'}]}>
                       Crear formulario
                     </ThemedText>
@@ -139,6 +174,8 @@ export default function BusStopsScreen() {
         </ThemedText>
       </TouchableOpacity>
     </View>
+    : workOrderData &&
+    <VisitFormComponent busStop={selectedBusStop} status='start' workOrder={workOrderData} cancelAction={cancelAction} />
   );
 }
 
@@ -200,5 +237,22 @@ const styles = StyleSheet.create({
   formButton: {
     padding: 5,
     borderRadius:10
+  },
+  checkboxContainer: {
+    paddingTop: 4,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    gap: 2,
+    alignContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+    borderBottomWidth: 0.5
+  },
+  checkbox: {
+    margin: 8,
+    borderRadius: 4
+  },
+  checkboxLabel: {
+    fontSize: 16
   }
 });

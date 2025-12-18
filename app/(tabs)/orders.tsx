@@ -2,6 +2,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Route, User, WorkOrder } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
@@ -17,6 +19,8 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
   const [hasOrderAssigned, setHasOrderAssigned] = useState<boolean>(false);
+  const colorScheme = useColorScheme()
+  const theme = colorScheme ?? "light";
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -108,13 +112,13 @@ export default function OrdersScreen() {
 
     return (
       <View style={styles.card}>
-        <ThemedView style={styles.cardTitle} >
+        <View style={styles.cardTitle} >
           <ThemedText type="subtitle">Orden #{item.id}</ThemedText>
           {
             isAssignedToMe &&
-            <StarIcon />
+            <StarIcon color={Colors[theme].icon} />
           }
-        </ThemedView>
+        </View>
         <ThemedText>Estado: {item.completada ? 'Completada' : 'Pendiente'}</ThemedText>
         <ThemedText>Ruta ID: {item.route_id}</ThemedText>
         
@@ -170,6 +174,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     flexDirection: "row",
-    justifyContent: "space-around",
-  }
+    justifyContent: "space-between",
+  },
 });

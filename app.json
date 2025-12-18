@@ -45,7 +45,13 @@
           }
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que \"Paraderos APP\" acceda a la cámara"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
