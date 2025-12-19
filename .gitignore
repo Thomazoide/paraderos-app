@@ -44,3 +44,13 @@ app-example
 # generated native folders
 /ios
 /android
+
+#vim swap files
+*~
+*.swp
+*.swo
+*.un~
+
+#general backup
+*.bak
+
