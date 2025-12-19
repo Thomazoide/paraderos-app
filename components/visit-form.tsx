@@ -2,9 +2,9 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { BusStop, WorkOrder } from "@/types/entitites";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
-import { Text } from "lucide-react-native";
+import { Camera, CircleOff, Text } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 
@@ -12,7 +12,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
     const [facing, setFacing] = useState<CameraType>("back");
     const [permission, requestPermission] = useCameraPermissions();
     const cameraRef = useRef<CameraView | null>(null);
-    const [picData, setPicData] = useState<string>("");
+    const [picData, setPicData] = useState<string>();
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? "light";
     const toggleCameraFacing = () => {
@@ -29,7 +29,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
     }
     return(
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.formContainer, {backgroundColor: Colors[theme].background}]} keyboardShouldPersistTaps="handled">
             <ThemedText type="title">
                 {
                     props.status === "start" ?
@@ -41,23 +41,26 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 Orden de trabajo #{props.workOrder.id}
             </ThemedText>
             <ThemedView style={styles.inputContainer}>
-                <ThemedText>
-                    Descripción <Text color={Colors[theme].icon} />
+                <ThemedText >
+                    Descripción <Text color={Colors[theme].icon} size={10} />
                 </ThemedText>
                 <TextInput maxLength={500} style={[
                     styles.textInput,
                     {
-                        backgroundColor: theme === "dark" ? Colors[theme].tint : Colors[theme].icon,
+                        backgroundColor: Colors[theme].tint,
                         color: Colors[theme].background
                     }
-                ]} />
+                ]} 
+                placeholder="Toque para editar texto..."
+                placeholderTextColor={Colors[theme].background}
+                />
             </ThemedView>
             <ThemedView style={styles.inputContainer}>
                 {
                     permission && !permission.granted ?
                     <>
                     <ThemedText type="subtitle" >
-                        Se requieren permisos en la app par usar la cámara...
+                        Se requieren permisos en la app par usar la cámara... <CircleOff size={10} color={ Colors[theme].icon } />
                     </ThemedText>
                     <TouchableOpacity 
                     style={
@@ -80,23 +83,84 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     </>
                     :
                     <>
-                    <CameraView  facing={facing} style={styles.camera} ref={cameraRef} />
-                    <TouchableOpacity style={
-                        [
-                            {
-                                backgroundColor: Colors[theme].tint
-                            },
-                            styles.buttonStyle
-                        ]
-                    }
-                    onPress={toggleCameraFacing}
-                    >
-                        <ThemedText style={{
-                            color: Colors[theme].background
-                        }}>
-                            Voltear cámara
+                    {
+                        !picData ?
+                        <ThemedText>
+                            Captura una foto del lugar <Camera size={12} />
                         </ThemedText>
-                    </TouchableOpacity>
+                        :
+                        <ThemedText>
+                            Foto tomada:
+                        </ThemedText>
+                    }
+                    {
+                        !picData ?
+                        <CameraView  facing={facing} style={styles.camera} ref={cameraRef} />
+                        :
+                        <Image src={`data:image/jpg;base64,${picData}`} height={150} width={250} />
+                    }
+                    {
+                        !picData ?
+                        <ThemedView style={styles.cameraButtons} >
+                            <TouchableOpacity style={
+                                [
+                                    {
+                                        backgroundColor: Colors[theme].tint
+                                    },
+                                    styles.buttonStyle
+                                ]
+                            }
+                            onPress={takePicture}
+                            >
+                                <ThemedText style={{
+                                    color: Colors[theme].background
+                                }}>
+                                    Tomar foto
+                                </ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={
+                                [
+                                    {
+                                        backgroundColor: Colors[theme].tint
+                                    },
+                                    styles.buttonStyle
+                                ]
+                            }
+                            onPress={toggleCameraFacing}
+                            >
+                                <ThemedText style={{
+                                    color: Colors[theme].background
+                                }}>
+                                    Voltear cámara
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </ThemedView>
+                        :
+                        <ThemedView style={{
+                            justifyContent: "center",
+                            width: "100%",
+                            padding: 10
+                        }} >
+                            <TouchableOpacity style={
+                                [
+                                    {
+                                        backgroundColor: Colors[theme].tint
+                                    },
+                                    styles.buttonStyle
+                                ]
+                            }
+                            onPress={
+                                () => setPicData(undefined)
+                            }
+                            >
+                                <ThemedText style={{
+                                    color: Colors[theme].background
+                                }}>
+                                    Retomar foto
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </ThemedView>
+                    }
                     </>
                 }
                 <ThemedView style={styles.inputContainer} >
@@ -170,20 +234,29 @@ const styles = StyleSheet.create({
         padding: 10
     },
     textInput: {
-        borderRadius: 8,
+        borderStyle: "dotted",
+        borderWidth: 0.5,
         padding: 15,
         margin:8,
         width: "100%",
-        height: 200
+        height: 120
     },
     buttonStyle: {
         padding: 10,
         borderRadius: 8,
-        marginHorizontal: 15
+        marginHorizontal: 15,
+        justifyContent: "center",
+        textAlign: "center"
     },
     camera: {
-        height: 150,
+        height: 200,
         width: "100%",
         marginBottom: 8,
+    },
+    cameraButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        padding: 10,
+        width: "100%"
     }
 })
