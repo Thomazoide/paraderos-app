@@ -8,10 +8,10 @@ import { Route, User, WorkOrder } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import { StarIcon } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, View } from 'react-native';
 
 export default function OrdersScreen() {
@@ -40,7 +40,18 @@ export default function OrdersScreen() {
       if (!data.error && data.data) {
         setOrders(data.data);
         const assignedOrders = data.data.filter( (o) => o.user_id === decoded.id && !o.completada );
-        if(assignedOrders.length > 0) setHasOrderAssigned(true);
+        if(assignedOrders.length > 0) {
+          await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(assignedOrders[0]));
+          if(assignedOrders[0].route){
+            await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(assignedOrders[0].route));
+          } else {
+            const endpoint = `${BACKEND_URL}${ENDPOINTS.routes}`;
+            const response = await (await fetch(endpoint, GetRequestConfig("GET", "JSON", undefined, token))).json() as ResponsePayload<Route>;
+            if(response.error) throw new Error(response.message);
+            if(response.data) await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
+          }
+          setHasOrderAssigned(true);
+        }
       } else {
         throw new Error(data.message);
       }
@@ -75,11 +86,9 @@ export default function OrdersScreen() {
 
   
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchOrders();
-    }, [])
-  );
+  useEffect( () => {
+    fetchOrders();
+  }, [] );
 
   const handleTakeOrder = async (workOrder: WorkOrder) => {
     try {

@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { BusStop, WorkOrder } from "@/types/entitites";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { Text } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
@@ -11,11 +11,22 @@ import { ThemedView } from "./themed-view";
 export default function VisitFormComponent(props: {busStop: BusStop, workOrder: WorkOrder, status: "start" | "finish", cancelAction: () => void}) {
     const [facing, setFacing] = useState<CameraType>("back");
     const [permission, requestPermission] = useCameraPermissions();
+    const cameraRef = useRef<CameraView | null>(null);
+    const [picData, setPicData] = useState<string>("");
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? "light";
     const toggleCameraFacing = () => {
-        setFacing(current => (current === "back" ? "front" : "front"));
+        setFacing(current => (current === "back" ? "front" : "back"));
     };
+    const takePicture = async () => {
+        if(cameraRef.current){
+            const picture = await cameraRef.current.takePictureAsync({
+                base64: true,
+                quality: 0.5
+            });
+            setPicData(picture.base64!)
+        }
+    }
     return(
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
@@ -45,7 +56,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 {
                     permission && !permission.granted ?
                     <>
-                    <ThemedText>
+                    <ThemedText type="subtitle" >
                         Se requieren permisos en la app par usar la cámara...
                     </ThemedText>
                     <TouchableOpacity 
@@ -53,7 +64,8 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                         [
                             {
                                 backgroundColor: Colors[theme].tint
-                            }
+                            },
+                            styles.buttonStyle
                         ]
                     }
                     onPress={requestPermission}
@@ -68,7 +80,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     </>
                     :
                     <>
-                    <CameraView  facing={facing} style={styles.camera} />
+                    <CameraView  facing={facing} style={styles.camera} ref={cameraRef} />
                     <TouchableOpacity style={
                         [
                             {
