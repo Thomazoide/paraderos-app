@@ -21,9 +21,9 @@ export const ENDPOINTS = {
     userUpdate: "/usuarios/v1/actualizar", // POST
     userChangePassword: "/usuarios/actualizar/clave", // POST
     visitForms: "/formularios/v1", // GET
-    visitFormCreate: "/formularios/v1/crear", // POST
-    visitFormFinish: (id: number) => `/formularios/v1/cerrar/${id}`, // POST
+    visitFormCreate: "/formularios/v2/crear", // POST
+    visitFormFinish: "/formularios/v2/cerrar", // POST
     visitFormByRouteID: (id: number) => `/formularios/v1/ruta/${id}`, // GET
     visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}` // GET
 };
-export const BACKEND_URL = "http://192.168.20.54:3000";
+export const BACKEND_URL = "https://6cxckmw6-3000.brs.devtunnels.ms";
