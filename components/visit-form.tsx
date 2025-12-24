@@ -8,9 +8,9 @@ import { GetRequestConfig } from "@/utils/utilities";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
-import { Camera, CircleOff, Text } from "lucide-react-native";
+import { Camera, CircleOff, FileText, RefreshCw, SwitchCamera, X } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 
@@ -160,191 +160,153 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
     
     return(
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={[styles.formContainer, {backgroundColor: Colors[theme].background}]} keyboardShouldPersistTaps="handled">
-            <ThemedText type="title">
-                {
-                    props.status === "start" ?
-                    `Inicio de formulario parada #${props.busStop.codigo}`
-                    : `Término de formulario parada#${props.busStop.codigo}`
-                }
-            </ThemedText>
-            <ThemedText type="subtitle">
-                Orden de trabajo #{props.workOrder.id}
-            </ThemedText>
-            <ThemedView style={styles.inputContainer}>
-                <ThemedText >
-                    Descripción <Text color={Colors[theme].icon} size={10} />
+        <ScrollView contentContainerStyle={[styles.scrollContainer, {backgroundColor: Colors[theme].background}]} keyboardShouldPersistTaps="handled">
+            {/* Header Section */}
+            <ThemedView style={styles.headerContainer}>
+                <ThemedText type="title" style={styles.headerTitle}>
+                    {props.status === "start" ? "Iniciar Visita" : "Finalizar Visita"}
                 </ThemedText>
-                <TextInput maxLength={500} style={[
-                    styles.textInput,
-                    {
-                        backgroundColor: Colors[theme].tint,
-                        color: Colors[theme].background
-                    }
-                ]} 
-                readOnly={loading}
-                placeholder="Toque para editar texto..."
-                placeholderTextColor={Colors[theme].background}
-                value={textInputData}
-                onChangeText={setTextInputData}
-                />
+                <ThemedText style={styles.headerSubtitle}>
+                    Parada #{props.busStop.codigo} • Orden #{props.workOrder.id}
+                </ThemedText>
             </ThemedView>
-            <ThemedView style={styles.inputContainer}>
-                {
-                    permission && !permission.granted ?
-                    <>
-                    <ThemedText type="subtitle" >
-                        Se requieren permisos en la app par usar la cámara... <CircleOff size={10} color={ Colors[theme].icon } />
-                    </ThemedText>
-                    <TouchableOpacity 
-                    style={
-                        [
-                            {
-                                backgroundColor: Colors[theme].tint
-                            },
-                            styles.buttonStyle
-                        ]
-                    }
-                    onPress={requestPermission}
-                    >
-                        <ThemedText style={{
-                            color: Colors[theme].background,
-                            fontWeight: "bold"
-                        }}>
-                            Solicitar permisos
-                        </ThemedText>
-                    </TouchableOpacity>
-                    </>
-                    :
-                    <>
-                    {
-                        !picData ?
-                        <ThemedText>
-                            Captura una foto del lugar <Camera size={12} />
-                        </ThemedText>
-                        :
-                        <ThemedText>
-                            Foto tomada:
-                        </ThemedText>
-                    }
-                    {
-                        !picData ?
-                        <CameraView  facing={facing} style={styles.camera} ref={cameraRef} />
-                        :
-                        <Image src={`data:image/jpg;base64,${picData}`} height={150} width={250} />
-                    }
-                    {
-                        !picData ?
-                        <ThemedView style={styles.cameraButtons} >
-                            <TouchableOpacity style={
-                                [
-                                    {
-                                        backgroundColor: Colors[theme].tint
-                                    },
-                                    styles.buttonStyle
-                                ]
-                            }
-                            onPress={takePicture}
-                            >
-                                <ThemedText style={{
-                                    color: Colors[theme].background
-                                }}>
-                                    Tomar foto
-                                </ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={
-                                [
-                                    {
-                                        backgroundColor: Colors[theme].tint
-                                    },
-                                    styles.buttonStyle
-                                ]
-                            }
-                            onPress={toggleCameraFacing}
-                            >
-                                <ThemedText style={{
-                                    color: Colors[theme].background
-                                }}>
-                                    Voltear cámara
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </ThemedView>
-                        :
-                        <ThemedView style={{
-                            justifyContent: "center",
-                            width: "100%",
-                            padding: 10
-                        }} >
-                            <TouchableOpacity 
-                                style={
-                                    [
-                                        {
-                                            backgroundColor: Colors[theme].tint
-                                        },
-                                        styles.buttonStyle
-                                    ]
-                                }
-                                onPress={
-                                    () => setPicData(undefined)
-                                }
-                                disabled={loading}
-                            >
-                                <ThemedText style={{
-                                    color: Colors[theme].background
-                                }}>
-                                    Retomar foto
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </ThemedView>
-                    }
-                    </>
+
+            {/* Description Card */}
+            <ThemedView style={[
+                styles.card, 
+                { 
+                    backgroundColor: theme === 'light' ? '#fff' : '#1E1E1E',
+                    borderColor: Colors[theme].icon + '30'
                 }
-                <ThemedView style={styles.inputContainer} >
-                    <ThemedView style={styles.footerContainer}>
-                        <TouchableOpacity
-                            style={[
-                                {
-                                    backgroundColor: Colors[theme].tint
-                                },
-                                styles.buttonStyle
-                            ]}
-                            onPress={
-                                props.status === "start" ?
-                                SaveFirstPartOfForm
-                                :
-                                saveLastPartOfForm
-                            }
-                            disabled={loading}
+            ]}>
+                <ThemedView style={styles.cardHeader}>
+                    <FileText size={18} color={Colors[theme].tint} />
+                    <ThemedText type="subtitle" style={styles.cardTitle}>Descripción</ThemedText>
+                </ThemedView>
+                
+                <TextInput 
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500} 
+                    style={[
+                        styles.textArea,
+                        {
+                            backgroundColor: theme === 'light' ? '#F5F5F5' : '#2C2C2C',
+                            color: Colors[theme].text,
+                            borderColor: Colors[theme].icon + '30'
+                        }
+                    ]} 
+                    readOnly={loading}
+                    placeholder="Ingrese observaciones del lugar..."
+                    placeholderTextColor={Colors[theme].icon}
+                    value={textInputData}
+                    onChangeText={setTextInputData}
+                />
+                <ThemedText style={styles.charCount}>
+                    {textInputData?.length || 0}/500
+                </ThemedText>
+            </ThemedView>
+
+            {/* Camera Card */}
+            <ThemedView style={[
+                styles.card, 
+                { 
+                    backgroundColor: theme === 'light' ? '#fff' : '#1E1E1E',
+                    borderColor: Colors[theme].icon + '30'
+                }
+            ]}>
+                <ThemedView style={styles.cardHeader}>
+                    <Camera size={18} color={Colors[theme].tint} />
+                    <ThemedText type="subtitle" style={styles.cardTitle}>Evidencia Fotográfica</ThemedText>
+                </ThemedView>
+
+                {permission && !permission.granted ? (
+                    <ThemedView style={styles.permissionContainer}>
+                        <CircleOff size={40} color={Colors[theme].icon} />
+                        <ThemedText style={{textAlign: 'center', marginVertical: 10}}>
+                            Se requieren permisos para usar la cámara
+                        </ThemedText>
+                        <TouchableOpacity 
+                            style={[styles.smallButton, {backgroundColor: Colors[theme].tint}]}
+                            onPress={requestPermission}
                         >
-                            <ThemedText style={{
-                                color: Colors[theme].background
-                            }} >
-                                {
-                                    props.status === "start" ?
-                                    "Guardar avance"
-                                    :
-                                    "Finalizar formulario"
-                                }
-                            </ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                {
-                                    backgroundColor: Colors[theme].tint
-                                },
-                                styles.buttonStyle
-                            ]}
-                            onPress={props.cancelAction}
-                            disabled={loading}
-                        >
-                            <ThemedText style={{
-                                color: Colors[theme].background
-                            }} >
-                                Cancelar
-                            </ThemedText>
+                            <ThemedText style={styles.smallButtonText}>Solicitar permisos</ThemedText>
                         </TouchableOpacity>
                     </ThemedView>
-                </ThemedView>
+                ) : (
+                    <ThemedView style={styles.cameraWrapper}>
+                        {!picData ? (
+                            <ThemedView style={styles.cameraContainer}>
+                                <CameraView facing={facing} style={styles.camera} ref={cameraRef} />
+                                <ThemedView style={styles.cameraControlsOverlay}>
+                                    <TouchableOpacity 
+                                        style={styles.iconButton}
+                                        onPress={toggleCameraFacing}
+                                    >
+                                        <SwitchCamera color="#fff" size={24} />
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity 
+                                        style={styles.captureButton}
+                                        onPress={takePicture}
+                                    >
+                                        <ThemedView style={styles.captureButtonInner} />
+                                    </TouchableOpacity>
+
+                                    <ThemedView style={{width: 44}} /> {/* Spacer for alignment */}
+                                </ThemedView>
+                            </ThemedView>
+                        ) : (
+                            <ThemedView style={styles.previewContainer}>
+                                <Image 
+                                    src={`data:image/jpg;base64,${picData}`} 
+                                    style={styles.previewImage}
+                                    resizeMode="cover"
+                                />
+                                <TouchableOpacity 
+                                    style={styles.retakeButton}
+                                    onPress={() => setPicData(undefined)}
+                                    disabled={loading}
+                                >
+                                    <RefreshCw color="#fff" size={16} style={{marginRight: 6}} />
+                                    <ThemedText style={{color: '#fff', fontWeight: '600'}}>Retomar</ThemedText>
+                                </TouchableOpacity>
+                            </ThemedView>
+                        )}
+                    </ThemedView>
+                )}
+            </ThemedView>
+
+            {/* Footer Actions */}
+            <ThemedView style={styles.footerContainer}>
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.cancelButton]}
+                    onPress={props.cancelAction}
+                    disabled={loading}
+                >
+                    <X color={Colors[theme].text} size={20} style={{marginRight: 6}} />
+                    <ThemedText style={{color: Colors[theme].text, fontWeight: '600'}}>
+                        Cancelar
+                    </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.actionButton, 
+                        styles.primaryButton,
+                        { backgroundColor: Colors[theme].tint }
+                    ]}
+                    onPress={props.status === "start" ? SaveFirstPartOfForm : saveLastPartOfForm}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <ThemedText style={styles.primaryButtonText}>
+                            {props.status === "start" ? "Guardar Avance" : "Finalizar"}
+                        </ThemedText>
+                    )}
+                </TouchableOpacity>
             </ThemedView>
         </ScrollView>
         </KeyboardAvoidingView>
@@ -352,55 +314,171 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
 }
 
 const styles = StyleSheet.create({
-    formContainer: {
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 3,
-        padding: 8,
+    scrollContainer: {
+        padding: 20,
+        paddingBottom: 50
     },
-    inputContainer: {
-        flexDirection: "column",
-        alignItems: "center",
-        alignContent: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        marginVertical: 10,
-        padding: 10,
-        borderRadius: 8,
-        width: "100%"
+    headerContainer: {
+        marginBottom: 20
     },
-    footerContainer: {
-        display: "flex",
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: "bold",
+        marginBottom: 4
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        opacity: 0.6
+    },
+    card: {
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    cardHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        borderTopWidth: 0.5,
-        borderBottomWidth: 0.5,
-        padding: 10
+        alignItems: "center",
+        marginBottom: 12,
+        gap: 8
     },
-    textInput: {
-        borderStyle: "dotted",
-        borderWidth: 0.5,
-        padding: 15,
-        margin:8,
-        width: "100%",
-        height: 120
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: "600"
     },
-    buttonStyle: {
-        padding: 10,
-        borderRadius: 8,
-        marginHorizontal: 15,
-        justifyContent: "center",
-        textAlign: "center"
+    textArea: {
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 12,
+        height: 120,
+        textAlignVertical: "top",
+        fontSize: 16
+    },
+    charCount: {
+        textAlign: "right",
+        fontSize: 12,
+        marginTop: 6,
+        opacity: 0.5
+    },
+    permissionContainer: {
+        alignItems: "center",
+        padding: 20
+    },
+    cameraWrapper: {
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: "#000",
+        height: 300
+    },
+    cameraContainer: {
+        flex: 1,
+        position: "relative"
     },
     camera: {
-        height: 200,
-        width: "100%",
-        marginBottom: 8,
-    },
-    cameraButtons: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        padding: 10,
+        flex: 1,
         width: "100%"
+    },
+    cameraControlsOverlay: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        flexDirection: "row",
+        justifyContent: "space-around",
+        alignItems: "center",
+        paddingVertical: 20,
+        backgroundColor: "rgba(0,0,0,0.3)"
+    },
+    captureButton: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: "rgba(255,255,255,0.3)",
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    captureButtonInner: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        backgroundColor: "#fff"
+    },
+    iconButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    previewContainer: {
+        flex: 1,
+        position: "relative"
+    },
+    previewImage: {
+        width: "100%",
+        height: "100%"
+    },
+    retakeButton: {
+        position: "absolute",
+        bottom: 20,
+        alignSelf: "center",
+        backgroundColor: "rgba(0,0,0,0.7)",
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#fff"
+    },
+    footerContainer: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 10
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: "row",
+        height: 50,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    cancelButton: {
+        backgroundColor: "transparent",
+        borderWidth: 1,
+        borderColor: "#ccc"
+    },
+    primaryButton: {
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2
+        },
+        shadowOpacity: 3,
+        elevation: 4
+    },
+    primaryButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16
+    },
+    smallButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8
+    },
+    smallButtonText: {
+        color: "#fff",
+        fontWeight: "600"
     }
 })

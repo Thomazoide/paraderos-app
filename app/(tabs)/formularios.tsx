@@ -9,9 +9,9 @@ import { ResponsePayload } from "@/types/response-payloads";
 import { GetRequestConfig } from "@/utils/utilities";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CheckBox from "expo-checkbox";
-import { Circle } from "lucide-react-native";
+import { CheckCircle2, Clock } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 
 export default function FormsPage(){
     const [forms, setForms] = useState<VisitForm[]>([]);
@@ -46,6 +46,8 @@ export default function FormsPage(){
         }
     }
 
+    const filteredForms = hideCompleted ? forms.filter( (f) => !f.completed ) : forms;
+
     const handleFormSelect = async (item: VisitForm) => {
         const busStopID = item.busStopId;
     }
@@ -78,12 +80,12 @@ export default function FormsPage(){
         !selectedForm ?
         <ThemedView style={styles.listContainer} >
             <ThemedView style={styles.header} >
-                <ThemedText type="title" >
-                    Formularios del usuario
+                <ThemedText type="title" style={styles.headerTitle} >
+                    Mis formularios
                 </ThemedText>
-                <ThemedView style={[styles.container, {width: "100%", marginLeft: 20}]}>
-                    <CheckBox value={hideCompleted} onValueChange={setHideCompleted} color={ hideCompleted ? Colors[theme].tint : undefined } />
-                    <ThemedText>
+                <ThemedView style={[styles.filterContainer, {width: "100%", marginLeft: 20}]}>
+                    <CheckBox style={styles.checkbox} value={hideCompleted} onValueChange={setHideCompleted} color={ hideCompleted ? Colors[theme].tint : undefined } />
+                    <ThemedText style={styles.filterText} >
                         Ocultar completadas
                     </ThemedText>
                 </ThemedView>
@@ -91,54 +93,80 @@ export default function FormsPage(){
             {
                 forms.length > 0 ?
                 <FlatList
-                    data={forms}
+                    data={filteredForms}
                     keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
                     renderItem={
                         ({item}) => (
-                            <View style={[styles.item, { borderBottomColor: Colors[theme].icon }]} >
-                                <ThemedText type="subtitle">
-                                    Formulario #{item.id.toString()}
-                                </ThemedText>
-                                <View style={styles.itemContent}>
-                                    <View style={styles.container} >
-                                        <Circle color={ item.completed ? "green" : "red" } size={10} />
-                                        <ThemedText type="subtitle">
+                            <ThemedView style={[
+                                styles.card, 
+                                { 
+                                    backgroundColor: theme === "light" ? "#fff" : "#1e1e1e"
+                                }
+                            ]} >
+                                <ThemedView style={styles.cardHeader}>
+                                    <ThemedText type="subtitle" style={styles.cardTitle} >
+                                        Formulario #{item.id.toString()}
+                                    </ThemedText>
+                                    <ThemedView style={[
+                                        styles.statusBadge,
+                                        {
+                                            backgroundColor: item.completed ? "#E6F4EA" : "#FFF8E1"
+                                        }
+                                    ]} >
+                                        {item.completed ?
+                                            <CheckCircle2 color="green" size={14}/> :
+                                            <Clock color="#F57C00" size={14}/>
+                                        }
+                                        <ThemedText style={[
+                                            styles.statusText,
                                             {
-                                                item.completed ?
-                                                "Completada"
-                                                :
+                                                color: item.completed ? "green" : "#E65100"
+                                            }
+                                        ]} >
+                                            {item.completed ?
+                                                "Completada" :
                                                 "Pendiente"
                                             }
                                         </ThemedText>
-                                    </View>
-                                    {
-                                        !item.completed ?
-                                        <TouchableOpacity
+                                    </ThemedView>
+                                </ThemedView>
+                                <ThemedView style={styles.cardBody}>
+                                    <ThemedText style={{
+                                        color: Colors[theme].icon
+                                    }}>
+                                        Paradero #{item.busStop?.codigo}
+                                    </ThemedText>
+                                </ThemedView>
+                                { !item.completed &&
+                                    <TouchableOpacity
                                         style={[
-                                            styles.completeButton,
+                                            styles.actionButton,
                                             {
                                                 backgroundColor: Colors[theme].tint
                                             }
                                         ]}
-                                        onPress={ () => handleFormSelect(item)}
-                                        >
-                                            <ThemedText style={{
-                                                color: "white"
-                                            }} >
-                                                Completar
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                        : null
-                                    }
-                                </View>
-                            </View>
+                                        activeOpacity={0.8}
+                                        onPress={ () => handleFormSelect(item) }
+                                    >
+                                        <ThemedText style={styles.actionButtonText}>
+                                            Completar formulario
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                }
+                            </ThemedView>
+                            
                         )
                     }
                 />
                 :
-                <ThemedText style={styles.centered}>
-                    Sin formularios creados...
-                </ThemedText>
+                <ThemedView style={styles.emptyState} >
+                    <ThemedText style={{
+                        color: Colors[theme].background
+                    }} >
+                        No hay formularios creados...
+                    </ThemedText>
+                </ThemedView>
             }
         </ThemedView>
         : null
@@ -160,10 +188,6 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         flexDirection: "column"
-    },
-    listContent: {
-        padding: 16,
-        paddingBottom: 80
     },
     item: {
         borderTopWidth: 0.5,
@@ -195,6 +219,84 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "column",
         gap: 5,
-        alignItems: "center"
+        alignItems: "center",
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 10
+    },
+    headerTitle: {
+        fontSize: 28,
+        marginBottom: 10
+    },
+    filterContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10
+    },
+    checkbox: {
+        marginRight: 8,
+        borderRadius: 4
+    },
+    filterText: {
+        fontSize: 14
+    },
+    listContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 40
+    },
+    card: {
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 3.84,
+        elevation: 3
+    },
+    cardHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: "800"
+    },
+    statusBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        gap: 4
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: "bold"
+    },
+    cardBody: {
+        marginBottom: 16
+    },
+    actionButton: {
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    actionButtonText: {
+        color: "white",
+        fontWeight: "600",
+        fontSize: 16
+    },
+    emptyState: {
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 50
     }
 })

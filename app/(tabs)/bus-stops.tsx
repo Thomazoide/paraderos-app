@@ -2,11 +2,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VisitFormComponent from '@/components/visit-form';
 import { MAP_DEFAULT_CENTER } from '@/constants/center';
-import { ROUTE_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
+import { ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BusStop, Route, WorkOrder } from '@/types/entitites';
+import { BusStop, Route, User, WorkOrder } from '@/types/entitites';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,11 +27,26 @@ export default function BusStopsScreen() {
   const [routeBusStops, setRouteBusStops] = useState<BusStop[] | null>(null);
   const [selectedBusStop, setSelectedBusStop] = useState<BusStop>();
   const [workOrderData, setWorkOrderData] = useState<WorkOrder>();
+  const [isForFinish, setIsForFinish] = useState<boolean>(false);
   const colorScheme = useColorScheme();
 
   const filteredBusStops = busStops.filter(stop => 
     stop.codigo.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleBusStopSelection = async (busStop: BusStop) => {
+    try{
+      const userDataString = await AsyncStorage.getItem(USER_DATA);
+      if(!userDataString) throw new Error("NUD;Sin datos de usuario");
+      const parsedUserData: User = JSON.parse(userDataString!);
+      const incompletedAssigned = busStop.visitForms!.filter( (form) => (form.userId === parsedUserData.id) && (!form.completed) )
+      if(incompletedAssigned.length > 0) throw new Error("MCF;Tiene formularios existentes sin completar");
+      setSelectedBusStop(busStop);
+    } catch(err) {
+      const [errorCode, errorMessage] = (err as Error).message.split(";");
+      
+    }
+  }
 
   const cancelAction = () => {
     setSelectedBusStop(undefined);
@@ -152,11 +167,11 @@ export default function BusStopsScreen() {
                 <ThemedText type="subtitle"> {routeData && item.id === routeData.route_points.filter( (id) => id === item.id)[0] ? <StarIcon color={Colors[theme].text}/> : null} {item.codigo}</ThemedText>
                 <ThemedText>{item.description}</ThemedText>
                 <View style={styles.itemFooter}>
-                  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]} onPress={() => setSelectedBusStop(item)} >
+                  {  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]} onPress={() => setSelectedBusStop(item)} >
                     <ThemedText style={[{color: Colors[theme].background, fontWeight: 'bold'}]}>
                       Crear formulario
                     </ThemedText>
-                  </TouchableOpacity>
+                  </TouchableOpacity>}
                 </View>
               </View>
             )}
