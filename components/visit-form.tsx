@@ -1,8 +1,9 @@
-import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA } from "@/constants/client-data";
+import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from "@/constants/client-data";
 import { BACKEND_URL, ENDPOINTS } from "@/constants/endpoints";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { BusStop, Route, User, VisitForm, WorkOrder } from "@/types/entitites";
+import { UpdateWorkOrderPayload } from "@/types/request-payloads";
 import { ResponsePayload } from "@/types/response-payloads";
 import { GetRequestConfig } from "@/utils/utilities";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -93,7 +94,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
             Alert.alert("Formulario creado", `Formulario #${response.data!.id} creado con exito.\nPara finalizarlo debe buscarlo en la pestaña de formularios`, [
                 {
                     text: "Volver",
-                    onPress: () => router.replace("/(tabs)/bus-stops")
+                    onPress: () => props.cancelAction
                 },
                 {
                     text: "Ir a formularios",
@@ -140,14 +141,24 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
             const config = GetRequestConfig("POST", "JSON", JSON.stringify(payload), accessToken!);
             const response: ResponsePayload<VisitForm> = await (await fetch(endpoint, config)).json();
             if(response.error) throw new Error(response.message);
-            Alert.alert("Formulario cerrado", "El formulario ha sido cerrado exitosamente",
-                [
+            if(response.data) {
+                const updateData: UpdateWorkOrderPayload = {
+                    workOrder: props.workOrder,
+                    busStopID: props.busStop.id
+                };
+                const updateWOConfig = GetRequestConfig("POST", "JSON", JSON.stringify(updateData), accessToken!);
+                const updateWOEndpoint = `${BACKEND_URL}${ENDPOINTS.workOrderAddVisitedBusStop}`;
+                const updateResponse: ResponsePayload<WorkOrder> = await (await fetch(updateWOEndpoint, updateWOConfig)).json();
+                if(updateResponse.error) throw new Error(updateResponse.message);
+                await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(updateResponse.data));
+                Alert.alert("Formulario cerrado", "El formulario ha sido cerrado exitosamente",[
                     {
                         text: "Continuar",
-                        onPress: () => router.replace("/(tabs)/formularios")
+                        onPress: props.cancelAction
                     }
-                ]
-            );
+                ]);
+            }
+            
         } catch (err) {
             Alert.alert("Error", (err as Error).message, [
                 {
@@ -155,13 +166,14 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     onPress: () => router.replace("/(tabs)/bus-stops")
                 }
             ]);
+        } finally {
+            setLoading(false);
         }
     }
     
     return(
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[styles.scrollContainer, {backgroundColor: Colors[theme].background}]} keyboardShouldPersistTaps="handled">
-            {/* Header Section */}
             <ThemedView style={styles.headerContainer}>
                 <ThemedText type="title" style={styles.headerTitle}>
                     {props.status === "start" ? "Iniciar Visita" : "Finalizar Visita"}
@@ -206,8 +218,6 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     {textInputData?.length || 0}/500
                 </ThemedText>
             </ThemedView>
-
-            {/* Camera Card */}
             <ThemedView style={[
                 styles.card, 
                 { 
@@ -276,8 +286,6 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     </ThemedView>
                 )}
             </ThemedView>
-
-            {/* Footer Actions */}
             <ThemedView style={styles.footerContainer}>
                 <TouchableOpacity
                     style={[styles.actionButton, styles.cancelButton]}

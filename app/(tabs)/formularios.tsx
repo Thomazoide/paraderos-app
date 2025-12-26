@@ -1,10 +1,11 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ACCESS_TOKEN, USER_DATA } from "@/constants/client-data";
+import VisitFormComponent from "@/components/visit-form";
+import { ACCESS_TOKEN, USER_DATA, WORK_ORDER_DATA } from "@/constants/client-data";
 import { BACKEND_URL, ENDPOINTS } from "@/constants/endpoints";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme.web";
-import { Route, User, VisitForm, WorkOrder } from "@/types/entitites";
+import { BusStop, User, VisitForm, WorkOrder } from "@/types/entitites";
 import { ResponsePayload } from "@/types/response-payloads";
 import { GetRequestConfig } from "@/utils/utilities";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,14 +14,19 @@ import { CheckCircle2, Clock } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 
+interface visitFormProps {
+    busStop: BusStop;
+    workOrder: WorkOrder;
+    status: "finish";
+    formID: number;
+}
+
 export default function FormsPage(){
     const [forms, setForms] = useState<VisitForm[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
     const [hideCompleted, setHideCompleted] = useState<boolean>(false);
-    const [selectedForm, setSelectedForm] = useState<VisitForm>();
-    const [routeData, setRouteData] = useState<Route>();
-    const [workOrderData, setWorkOrderData] = useState<WorkOrder>();
+    const [formProps, setFormProps] = useState<visitFormProps>();
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
 
@@ -49,7 +55,18 @@ export default function FormsPage(){
     const filteredForms = hideCompleted ? forms.filter( (f) => !f.completed ) : forms;
 
     const handleFormSelect = async (item: VisitForm) => {
-        const busStopID = item.busStopId;
+        const busStop = item.busStop;
+        const workOrderString = await AsyncStorage.getItem(WORK_ORDER_DATA);
+        const workOrderData: WorkOrder = JSON.parse(workOrderString!);
+        const formID = item.id
+        if(busStop && workOrderData && formID) {
+            setFormProps({
+                busStop,
+                workOrder: workOrderData,
+                formID,
+                status: "finish"
+            });
+        }
     }
 
     useEffect( () => {
@@ -77,7 +94,7 @@ export default function FormsPage(){
     
 
     return(
-        !selectedForm ?
+        !formProps ?
         <ThemedView style={styles.listContainer} >
             <ThemedView style={styles.header} >
                 <ThemedText type="title" style={styles.headerTitle} >
@@ -169,10 +186,8 @@ export default function FormsPage(){
                 </ThemedView>
             }
         </ThemedView>
-        : null
-        //<ThemedView style={styles.listContainer}>
-          //  <VisitFormComponent busStop={} cancelAction={ () => setSelectedForm(undefined) } status="finish" workOrder={} formID={}/>
-        //</ThemedView>
+        :
+        <VisitFormComponent busStop={formProps.busStop} cancelAction={ () => setFormProps(undefined) } status={formProps.status} workOrder={formProps.workOrder} formID={formProps.formID}/>
     );
 }
 

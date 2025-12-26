@@ -10,6 +10,7 @@ export const ENDPOINTS = {
     entriesByUserID: (id: number) => `/entradas/v1/usuario/${id}`, // GET
     entriesByBusStopID: (id: number) => `/entradas/v1/paradero/${id}`, // GET
     workOrders: "/ordenes/v1", // GET y POST
+    workOrderAddVisitedBusStop: "/ordenes/v1/agregar-paradero-visitado", //POST
     workOrderByID: (id: number) => `/ordenes/v1/buscar/${id}`, // GET
     workOrderByRouteID: (id: number) => `/ordenes/v1/ruta/${id}`, // GET
     deleteWorkOrder: (id: number) => `/ordenes/v1/borrar/${id}`, // DELETE
@@ -24,6 +25,7 @@ export const ENDPOINTS = {
     visitFormCreate: "/formularios/v2/crear", // POST
     visitFormFinish: "/formularios/v2/cerrar", // POST
     visitFormByRouteID: (id: number) => `/formularios/v1/ruta/${id}`, // GET
-    visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}` // GET
+    visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}`, // GET,
+    locationSocket: "/gps" //socket - SubscribeMessage: "actualizar-gps" con el MessageBody: `UpdatePositionPayload` de request-payloads.ts
 };
 export const BACKEND_URL = "http://192.168.20.54:3000";

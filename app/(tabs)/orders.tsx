@@ -1,24 +1,104 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
+import { ACCESS_TOKEN, LOCATION_BACKGROUND_TASK, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Route, User, WorkOrder } from '@/types/entitites';
+import { UpdatePositionPayload } from '@/types/request-payloads';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Accuracy, LocationObject, hasStartedLocationUpdatesAsync, requestBackgroundPermissionsAsync, requestForegroundPermissionsAsync, startLocationUpdatesAsync, stopLocationUpdatesAsync } from "expo-location";
 import { router } from 'expo-router';
+import * as TaskManager from "expo-task-manager";
 import { jwtDecode } from 'jwt-decode';
 import { StarIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, View } from 'react-native';
+import { io } from "socket.io-client";
+
+TaskManager.defineTask(LOCATION_BACKGROUND_TASK, async ({ data, error }) => {
+  if(error) {
+    console.error("Proceso de tarea en segundo plano fallido...", error);
+    return;
+  }
+  const { locations } = (data ?? {}) as { locations?: LocationObject[]};
+  const loc = locations?.[0];
+  if(!loc) return;
+  try {
+    const token = await AsyncStorage.getItem(ACCESS_TOKEN);
+    const userDataRaw = await AsyncStorage.getItem(USER_DATA);
+    const userID = userDataRaw ? (JSON.parse(userDataRaw) as User).id : undefined;
+    if(!token || !userID){
+      console.log("Sin datos de usuario ni token de acceso, procediendo offline...");
+      return;
+    }
+    const socket = io(`${BACKEND_URL}${ENDPOINTS.locationSocket}`, {
+      transports: ["websocket"],
+      auth: {token},
+      forceNew: true,
+      reconnection: true,
+      timeout: 4000
+    });
+    await new Promise<void>((resolve, reject) => {
+      const onConnect = () => {
+        const payload: UpdatePositionPayload = {
+          id: userID!,
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude,
+          timestamp: new Date().toISOString()
+        };
+        socket.emit("actualizar-gps", payload, () => {
+          resolve();
+        });
+      };
+      socket.once("connect", onConnect);
+      socket.once("connect_error", reject);
+      setTimeout( () => reject(new Error("Tiempo de espera agotado...")), 4500);
+    });
+    socket.disconnect();
+  } catch (err) {
+    console.log("Conexión por socket fallida...", err);
+  }
+});
+
+export const startLocationTracking = async () => {
+  const {status: fg} = await requestForegroundPermissionsAsync();
+  if(fg !== "granted") {
+    Alert.alert("Permiso requerido", "Otorga acceso a la ubicación mientras usas la app");
+    return;
+  }
+  const {status: bg} = await requestBackgroundPermissionsAsync();
+  if(bg !== "granted") {
+    Alert.alert("Permiso requerido", "otorga acceso a la ubicación en segundo plano");
+    return;
+  }
+  const already = await hasStartedLocationUpdatesAsync(LOCATION_BACKGROUND_TASK);
+  if(already) return;
+  await startLocationUpdatesAsync(LOCATION_BACKGROUND_TASK, {
+    accuracy: Accuracy.High,
+    distanceInterval: 15,
+    timeInterval: 10000,
+    deferredUpdatesInterval: 5000,
+    showsBackgroundLocationIndicator: true,
+    foregroundService: {
+      notificationTitle: "Ruta en curso",
+      notificationBody: "Monitorenado tu ubicación para la orden asignada",
+      notificationColor: "#ffffff"
+    }
+  });
+};
+
+export const stopLocationTracking = async () => {
+  const started = await hasStartedLocationUpdatesAsync(LOCATION_BACKGROUND_TASK);
+  if(started) await stopLocationUpdatesAsync(LOCATION_BACKGROUND_TASK);
+}
 
 export default function OrdersScreen() {
   const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
-  const [hasOrderAssigned, setHasOrderAssigned] = useState<boolean>(false);
   const colorScheme = useColorScheme()
   const theme = colorScheme ?? "light";
 
@@ -41,6 +121,7 @@ export default function OrdersScreen() {
         setOrders(data.data);
         const assignedOrders = data.data.filter( (o) => o.user_id === decoded.id && !o.completada );
         if(assignedOrders.length > 0) {
+          await startLocationTracking();
           await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(assignedOrders[0]));
           if(assignedOrders[0].route){
             await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(assignedOrders[0].route));
@@ -50,7 +131,6 @@ export default function OrdersScreen() {
             if(response.error) throw new Error(response.message);
             if(response.data) await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
           }
-          setHasOrderAssigned(true);
         }
       } else {
         throw new Error(data.message);
@@ -107,6 +187,7 @@ export default function OrdersScreen() {
       const response = await (await fetch(endpoint, config)).json() as ResponsePayload<WorkOrder>;
       if(response.error) throw new Error(response.message);
       await fetchRoute(response.data!);
+      await startLocationTracking();
       Alert.alert("Orden asignada", "No podra tomar mas ordenes hasta haber terminado la asiganda");
     } catch (err) {
       Alert.alert("Error", (err as Error).message);
@@ -131,7 +212,7 @@ export default function OrdersScreen() {
         <ThemedText>Estado: {item.completada ? 'Completada' : 'Pendiente'}</ThemedText>
         <ThemedText>Ruta ID: {item.route_id}</ThemedText>
         
-        {isUnassigned && !isAssignedToMe && !hasOrderAssigned && (
+        {isUnassigned && !isAssignedToMe && (
           <Button title="Tomar orden" onPress={() => handleTakeOrder(item)} />
         )}
       </View>

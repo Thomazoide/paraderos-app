@@ -50,9 +50,17 @@ export default ({config}: ConfigContext): ExpoConfig => ({
         [
             "expo-camera",
             {
-                cameraPermission: "Permitir que \"Paraderos APP\" acceda a la cámara?"
+                cameraPermission: "Permitir que \"Paraderos APP\" acceda a la cámara."
             }
         ],
+        [
+            "expo-location",
+            {
+                locationAlwaysAndWhenInUsePermission: "Permitir que PARADEROS-APP use tu ubicación.",
+                isAndroidForegroundServiceEnabled: true,
+                isAndroidBackgroundLocationEnabled: true
+            }
+        ]
     ],
     experiments: {
         typedRoutes: true,

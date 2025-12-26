@@ -11,9 +11,10 @@ import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CheckBox from "expo-checkbox";
+import { router } from 'expo-router';
 import { StarIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 export default function BusStopsScreen() {
@@ -27,7 +28,6 @@ export default function BusStopsScreen() {
   const [routeBusStops, setRouteBusStops] = useState<BusStop[] | null>(null);
   const [selectedBusStop, setSelectedBusStop] = useState<BusStop>();
   const [workOrderData, setWorkOrderData] = useState<WorkOrder>();
-  const [isForFinish, setIsForFinish] = useState<boolean>(false);
   const colorScheme = useColorScheme();
 
   const filteredBusStops = busStops.filter(stop => 
@@ -40,11 +40,28 @@ export default function BusStopsScreen() {
       if(!userDataString) throw new Error("NUD;Sin datos de usuario");
       const parsedUserData: User = JSON.parse(userDataString!);
       const incompletedAssigned = busStop.visitForms!.filter( (form) => (form.userId === parsedUserData.id) && (!form.completed) )
-      if(incompletedAssigned.length > 0) throw new Error("MCF;Tiene formularios existentes sin completar");
+      if(incompletedAssigned.length > 0) throw new Error("MCF;Tiene formularios de este paradero sin completar");
       setSelectedBusStop(busStop);
     } catch(err) {
       const [errorCode, errorMessage] = (err as Error).message.split(";");
-      
+      console.log(errorCode, errorMessage, (err as Error).message);
+      if(errorCode === "NUD"){
+        Alert.alert(errorMessage, "Debe iniciar sesión nuevamente...", [
+          {
+            text: "Volver a iniciar sesión",
+            onPress: () => router.replace("/login")
+          }
+        ])
+      } else if(errorCode === "MCF") {
+        Alert.alert(errorMessage, "Debe completar los formularios existentes antes de crear otros",[
+          {
+            text: "Ir a Formularios",
+            onPress: () => router.replace("/(tabs)/formularios")
+          }
+        ])
+      } else {
+        Alert.alert("Error desconocido", "Vuelva a cargar la aplicación o intentelo más tarde")
+      }
     }
   }
 
@@ -167,11 +184,20 @@ export default function BusStopsScreen() {
                 <ThemedText type="subtitle"> {routeData && item.id === routeData.route_points.filter( (id) => id === item.id)[0] ? <StarIcon color={Colors[theme].text}/> : null} {item.codigo}</ThemedText>
                 <ThemedText>{item.description}</ThemedText>
                 <View style={styles.itemFooter}>
-                  {  <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]} onPress={() => setSelectedBusStop(item)} >
+                  { !new Set(workOrderData?.stops_visited).has(item.id) ? <TouchableOpacity style={[styles.formButton, {backgroundColor: Colors[theme].tint}]} onPress={() => handleBusStopSelection(item)} >
                     <ThemedText style={[{color: Colors[theme].background, fontWeight: 'bold'}]}>
                       Crear formulario
                     </ThemedText>
-                  </TouchableOpacity>}
+                  </TouchableOpacity>
+                  :
+                  <ThemedText style={{
+                    borderRadius: 8,
+                    fontWeight: "bold",
+                    padding: 5,
+                  }} >
+                    Paradero visitado y registrado!
+                  </ThemedText>
+                  }
                 </View>
               </View>
             )}
