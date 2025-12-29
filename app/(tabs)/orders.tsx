@@ -15,7 +15,7 @@ import * as TaskManager from "expo-task-manager";
 import { jwtDecode } from 'jwt-decode';
 import { StarIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { io } from "socket.io-client";
 
 TaskManager.defineTask(LOCATION_BACKGROUND_TASK, async ({ data, error }) => {
@@ -199,6 +199,7 @@ export default function OrdersScreen() {
   const renderItem = ({ item }: { item: WorkOrder }) => {
     const isAssignedToMe = item.user_id === userId;
     const isUnassigned = item.user_id === null;
+    const visitedString = `Paraderos visitados: ${item.stops_visited?.length} de ${item.route?.route_points.length}`
 
     return (
       <View style={styles.card}>
@@ -211,7 +212,7 @@ export default function OrdersScreen() {
         </View>
         <ThemedText>Estado: {item.completada ? 'Completada' : 'Pendiente'}</ThemedText>
         <ThemedText>Ruta ID: {item.route_id}</ThemedText>
-        
+        <ThemedText>{ item.route && item.stops_visited ? visitedString : null}</ThemedText>
         {isUnassigned && !isAssignedToMe && (
           <Button title="Tomar orden" onPress={() => handleTakeOrder(item)} />
         )}
@@ -236,6 +237,9 @@ export default function OrdersScreen() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         ListEmptyComponent={<ThemedText>No hay órdenes disponibles</ThemedText>}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchOrders} />
+        }
       />
     </ThemedView>
   );
@@ -260,7 +264,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     backgroundColor: 'rgba(255,255,255,0.1)', // Slight background for visibility
-  },
+    },
   cardTitle: {
     flex: 1,
     flexDirection: "row",

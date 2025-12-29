@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import CheckBox from "expo-checkbox";
 import { CheckCircle2, Clock } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity } from "react-native";
 
 interface visitFormProps {
     busStop: BusStop;
@@ -110,6 +110,9 @@ export default function FormsPage(){
             {
                 forms.length > 0 ?
                 <FlatList
+                    refreshControl={
+                        <RefreshControl refreshing={loading} onRefresh={fetchForms} />
+                    }
                     data={filteredForms}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContent}

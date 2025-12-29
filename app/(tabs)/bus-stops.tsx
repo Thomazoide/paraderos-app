@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VisitFormComponent from '@/components/visit-form';
 import { MAP_DEFAULT_CENTER } from '@/constants/center';
-import { ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
+import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -14,7 +14,7 @@ import CheckBox from "expo-checkbox";
 import { router } from 'expo-router';
 import { StarIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 export default function BusStopsScreen() {
@@ -28,6 +28,7 @@ export default function BusStopsScreen() {
   const [routeBusStops, setRouteBusStops] = useState<BusStop[] | null>(null);
   const [selectedBusStop, setSelectedBusStop] = useState<BusStop>();
   const [workOrderData, setWorkOrderData] = useState<WorkOrder>();
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const colorScheme = useColorScheme();
 
   const filteredBusStops = busStops.filter(stop => 
@@ -68,6 +69,23 @@ export default function BusStopsScreen() {
   const cancelAction = () => {
     setSelectedBusStop(undefined);
   };
+
+  const onRefresh = async () => {
+    try {
+      const endpoint = `${BACKEND_URL}${ENDPOINTS.busStops}`;
+      const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
+      const response: ResponsePayload<BusStop[]> = await (await fetch(endpoint, GetRequestConfig("GET", "JSON", undefined, accessToken!))).json();
+      console.log("-------------", response);
+      if(response.error) throw new Error(response.message);
+      if(response.data){
+        setBusStops(response.data);
+      }
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   useEffect(() => {
     const fetchBusStops = async () => {
@@ -177,6 +195,9 @@ export default function BusStopsScreen() {
             }
           </View>
           <FlatList
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          }
             data={ routeBusStops ? routeBusStops : filteredBusStops}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
