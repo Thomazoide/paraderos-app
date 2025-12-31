@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VisitFormComponent from '@/components/visit-form';
 import { MAP_DEFAULT_CENTER } from '@/constants/center';
-import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
+import { ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from '@/constants/client-data';
 import { BACKEND_URL, ENDPOINTS } from '@/constants/endpoints';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -23,7 +23,7 @@ export default function BusStopsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isMapMode, setIsMapMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [routeData, setRouteData] = useState<Route | null>(null);
+  const [routeData, setRouteData] = useState<Route>();
   const [showStopsFromRoute, setShowStopsFromRoute] = useState<boolean>(false);
   const [routeBusStops, setRouteBusStops] = useState<BusStop[] | null>(null);
   const [selectedBusStop, setSelectedBusStop] = useState<BusStop>();
@@ -36,6 +36,14 @@ export default function BusStopsScreen() {
   );
 
   const handleBusStopSelection = async (busStop: BusStop) => {
+    if(!workOrderData || !routeData) {
+      Alert.alert("Sin orden/ruta activa", "Debe tomar una orden para tener una ruta activa y completar formularios", [
+        {
+          text: "Ir a ordenes",
+          onPress: () => router.replace("/(tabs)/orders")
+        }
+      ]);
+    }
     try{
       const userDataString = await AsyncStorage.getItem(USER_DATA);
       if(!userDataString) throw new Error("NUD;Sin datos de usuario");
@@ -72,16 +80,30 @@ export default function BusStopsScreen() {
 
   const onRefresh = async () => {
     try {
-      const endpoint = `${BACKEND_URL}${ENDPOINTS.busStops}`;
-      const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
-      const response: ResponsePayload<BusStop[]> = await (await fetch(endpoint, GetRequestConfig("GET", "JSON", undefined, accessToken!))).json();
-      console.log("-------------", response);
-      if(response.error) throw new Error(response.message);
-      if(response.data){
-        setBusStops(response.data);
+      setIsRefreshing(true);
+      const woData = await AsyncStorage.getItem(WORK_ORDER_DATA);
+      const savedToken = await AsyncStorage.getItem("token");
+      if(!savedToken) throw new Error("Sin token de acceso");
+      const config = GetRequestConfig('GET', 'JSON', undefined, savedToken);
+      const response = await fetch(`${BACKEND_URL}${ENDPOINTS.busStops}`, config);
+      const data: ResponsePayload<BusStop[]> = await response.json();
+      const cachedRouteData = await AsyncStorage.getItem(ROUTE_DATA);
+      if(cachedRouteData && woData) {
+        console.log(cachedRouteData);
+        const parsedRouteData = JSON.parse(cachedRouteData) as Route;
+        const parsedWorkOrderData = JSON.parse(woData) as WorkOrder;
+        setWorkOrderData(parsedWorkOrderData);
+        setRouteData(parsedRouteData);
+      } else {
+        await AsyncStorage.multiRemove([WORK_ORDER_DATA, ROUTE_DATA]);
+        setWorkOrderData(undefined);
+        setRouteData(undefined);
       }
-    } catch (error) {
-      setError((error as Error).message);
+      if (!response.ok) throw new Error(data.message || 'Error al obtener los paraderos');
+      if(data.error) throw new Error(data.message);
+      if(data.data) setBusStops(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setIsRefreshing(false);
     }
@@ -90,18 +112,23 @@ export default function BusStopsScreen() {
   useEffect(() => {
     const fetchBusStops = async () => {
       try {
+        setLoading(true);
         const woData = await AsyncStorage.getItem(WORK_ORDER_DATA);
-        if(woData && woData !== "") setWorkOrderData(JSON.parse(woData) as WorkOrder);
         const savedToken = await AsyncStorage.getItem("token");
         if(!savedToken) throw new Error("Sin token de acceso");
         const config = GetRequestConfig('GET', 'JSON', undefined, savedToken);
         const response = await fetch(`${BACKEND_URL}${ENDPOINTS.busStops}`, config);
         const data: ResponsePayload<BusStop[]> = await response.json();
-        console.log(data);
         const cachedRouteData = await AsyncStorage.getItem(ROUTE_DATA);
-        if(cachedRouteData) {
+        if(cachedRouteData &&  woData) {
           const parsedRouteData = JSON.parse(cachedRouteData) as Route;
+          const parsedWorkOrderData = JSON.parse(woData) as WorkOrder;
+          setWorkOrderData(parsedWorkOrderData);
           setRouteData(parsedRouteData);
+        } else {
+          await AsyncStorage.multiRemove([WORK_ORDER_DATA, ROUTE_DATA]);
+          setWorkOrderData(undefined);
+          setRouteData(undefined);
         }
         if (!response.ok) {
           throw new Error(data.message || 'Error al obtener los paraderos');

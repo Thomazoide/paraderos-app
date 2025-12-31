@@ -119,8 +119,9 @@ export default function OrdersScreen() {
       
       if (!data.error && data.data) {
         setOrders(data.data);
-        const assignedOrders = data.data.filter( (o) => o.user_id === decoded.id && !o.completada );
+        const assignedOrders = data.data.filter( (o) => (!o.completada && o.user_id === decoded.id) );
         if(assignedOrders.length > 0) {
+          console.log(assignedOrders);
           await startLocationTracking();
           await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(assignedOrders[0]));
           if(assignedOrders[0].route){
@@ -131,6 +132,8 @@ export default function OrdersScreen() {
             if(response.error) throw new Error(response.message);
             if(response.data) await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
           }
+        } else {
+          await AsyncStorage.multiRemove([WORK_ORDER_DATA, ROUTE_DATA]);
         }
       } else {
         throw new Error(data.message);
