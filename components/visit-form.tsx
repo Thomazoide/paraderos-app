@@ -232,7 +232,9 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
 
                 {permission && !permission.granted ? (
                     <ThemedView style={styles.permissionContainer}>
-                        <CircleOff size={40} color={Colors[theme].icon} />
+                        <ThemedText>
+                            <CircleOff size={40} color={Colors[theme].icon} />
+                        </ThemedText>
                         <ThemedText style={{textAlign: 'center', marginVertical: 10}}>
                             Se requieren permisos para usar la cámara
                         </ThemedText>

@@ -5,7 +5,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Form } from "lucide-react-native";
+import { Form, UserCircle2 } from "lucide-react-native";
 
 
 export default function TabLayout() {
@@ -37,6 +37,13 @@ export default function TabLayout() {
         options={{
           title: "Formularios",
           tabBarIcon: ({color}) => <Form size={28} color={color} />
+        }}
+      />
+      <Tabs.Screen
+        name="my-account"
+        options={{
+          title:"Mi cuenta",
+          tabBarIcon: ({color}) => <UserCircle2 size={28} color={color} />
         }}
       />
     </Tabs>

@@ -119,10 +119,10 @@ export default function OrdersScreen() {
       
       if (!data.error && data.data) {
         setOrders(data.data);
+        await startLocationTracking();
         const assignedOrders = data.data.filter( (o) => (!o.completada && o.user_id === decoded.id) );
         if(assignedOrders.length > 0) {
           console.log(assignedOrders);
-          await startLocationTracking();
           await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(assignedOrders[0]));
           if(assignedOrders[0].route){
             await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(assignedOrders[0].route));
@@ -261,13 +261,18 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   card: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
-    backgroundColor: 'rgba(255,255,255,0.1)', // Slight background for visibility
+    shadowColor: "#000",
+    shadowOffset: {
+        width: 0,
+        height: 2
     },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+  },
   cardTitle: {
     flex: 1,
     flexDirection: "row",
