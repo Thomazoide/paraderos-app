@@ -1,5 +1,5 @@
 export const ENDPOINTS = {
-    authLogin: "/auth/v1/login", // POST
+    authLogin: "/auth/v2/login", // POST
     authVerifyToken: "/auth/v1/verificar-token", // POST
     busStops: "/paraderos/v1", // solo GET y POST
     busStopFindOrDelete: (id: number) => `/paraderos/v1/find/${id}`, // solo GET o DELETE

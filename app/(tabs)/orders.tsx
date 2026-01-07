@@ -205,7 +205,12 @@ export default function OrdersScreen() {
     const visitedString = `Paraderos visitados: ${item.stops_visited?.length} de ${item.route?.route_points.length}`
 
     return (
-      <View style={styles.card}>
+      <View style={[
+        styles.card,
+        {
+          borderColor: Colors[theme].icon
+        }
+      ]}>
         <View style={styles.cardTitle} >
           <ThemedText type="subtitle">Orden #{item.id}</ThemedText>
           {
@@ -236,7 +241,34 @@ export default function OrdersScreen() {
       <ThemedText type="title" style={styles.title}>Órdenes de Trabajo</ThemedText>
       <FlatList
         data={orders}
-        renderItem={renderItem}
+        renderItem={ ({ item }: { item: WorkOrder }) => {
+          const isAssignedToMe = item.user_id === userId;
+          const isUnassigned = item.user_id === null;
+          const visitedString = `Paraderos visitados: ${item.stops_visited?.length} de ${item.route?.route_points.length}`
+
+          return (
+            <View style={[
+              styles.card,
+              {
+                borderColor: Colors[theme].icon
+              }
+            ]}>
+              <View style={styles.cardTitle} >
+                <ThemedText type="subtitle">Orden #{item.id}</ThemedText>
+                {
+                  isAssignedToMe &&
+                  <StarIcon color={Colors[theme].icon} />
+                }
+              </View>
+              <ThemedText>Estado: {item.completada ? 'Completada' : 'Pendiente'}</ThemedText>
+              <ThemedText>Ruta ID: {item.route_id}</ThemedText>
+              <ThemedText>{ item.route && item.stops_visited ? visitedString : null}</ThemedText>
+              {isUnassigned && !isAssignedToMe && (
+                <Button title="Tomar orden" onPress={() => handleTakeOrder(item)} />
+              )}
+            </View>
+          )
+        }}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         ListEmptyComponent={<ThemedText>No hay órdenes disponibles</ThemedText>}
@@ -272,6 +304,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
+    elevation: 3
   },
   cardTitle: {
     flex: 1,
