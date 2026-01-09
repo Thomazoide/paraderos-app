@@ -5,6 +5,12 @@ export interface LoginPayload {
     password: string;
 }
 
+export interface UpdatePasswordInterface {
+    oldPassword: string;
+    newPassword: string;
+    id: number;
+}
+
 export interface VerifyTokenPayload {
     token: string;
 }

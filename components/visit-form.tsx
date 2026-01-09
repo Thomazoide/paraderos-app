@@ -182,8 +182,6 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                     Parada #{props.busStop.codigo} • Orden #{props.workOrder.id}
                 </ThemedText>
             </ThemedView>
-
-            {/* Description Card */}
             <ThemedView style={[
                 styles.card, 
                 { 
@@ -192,7 +190,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 }
             ]}>
                 <ThemedView style={styles.cardHeader}>
-                    <FileText size={18} color={Colors[theme].tint} />
+                    <ThemedText> <FileText size={18} color={Colors[theme].tint} /> </ThemedText>
                     <ThemedText type="subtitle" style={styles.cardTitle}>Descripción</ThemedText>
                 </ThemedView>
                 
@@ -226,7 +224,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 }
             ]}>
                 <ThemedView style={styles.cardHeader}>
-                    <Camera size={18} color={Colors[theme].tint} />
+                    <ThemedText> <Camera size={18} color={Colors[theme].tint} /> </ThemedText>
                     <ThemedText type="subtitle" style={styles.cardTitle}>Evidencia Fotográfica</ThemedText>
                 </ThemedView>
 
@@ -265,7 +263,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                                         <ThemedView style={styles.captureButtonInner} />
                                     </TouchableOpacity>
 
-                                    <ThemedView style={{width: 44}} /> {/* Spacer for alignment */}
+                                    <ThemedView style={{width: 44}} /> 
                                 </ThemedView>
                             </ThemedView>
                         ) : (
@@ -280,7 +278,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                                     onPress={() => setPicData(undefined)}
                                     disabled={loading}
                                 >
-                                    <RefreshCw color="#fff" size={16} style={{marginRight: 6}} />
+                                    <ThemedText> <RefreshCw color="#fff" size={16} style={{marginRight: 6}} /> </ThemedText>
                                     <ThemedText style={{color: '#fff', fontWeight: '600'}}>Retomar</ThemedText>
                                 </TouchableOpacity>
                             </ThemedView>

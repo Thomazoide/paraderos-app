@@ -20,7 +20,7 @@ export const ENDPOINTS = {
     users: "/usuarios/v1", // GET
     userCreate: "/usuarios/v1/registrar", // POST
     userUpdate: "/usuarios/v1/actualizar", // POST
-    userChangePassword: "/usuarios/actualizar/clave", // POST
+    userChangePassword: "/usuarios/v2/actualizar/clave", // POST
     visitForms: "/formularios/v1", // GET
     visitFormCreate: "/formularios/v2/crear", // POST
     visitFormFinish: "/formularios/v2/cerrar", // POST
@@ -28,4 +28,4 @@ export const ENDPOINTS = {
     visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}`, // GET,
     locationSocket: "/gps" //socket - SubscribeMessage: "actualizar-gps" con el MessageBody: `UpdatePositionPayload` de request-payloads.ts
 };
-export const BACKEND_URL = "http://192.168.20.54:3000";
+export const BACKEND_URL = "http://192.168.1.2:3000";

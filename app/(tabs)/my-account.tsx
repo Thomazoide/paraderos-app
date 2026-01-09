@@ -1,9 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ACCESS_TOKEN, ROUTE_DATA, USER_DATA, WORK_ORDER_DATA } from "@/constants/client-data";
+import { BACKEND_URL, ENDPOINTS } from "@/constants/endpoints";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme.web";
 import { User, UserType } from "@/types/entitites";
+import { UpdatePasswordInterface } from "@/types/request-payloads";
+import { ResponsePayload } from "@/types/response-payloads";
+import { GetRequestConfig } from "@/utils/utilities";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CheckBox from "expo-checkbox";
 import { router } from "expo-router";
@@ -16,6 +20,9 @@ export default function MyAccount() {
   const [userName, setUserName] = useState<string>();
   const [userLastName, setUserLastName] = useState<string>();
   const [userEmail, setUserEmail] = useState<string>();
+  const [accessToken, setAccessToken] = useState<string>()
+  const [oldPassword, setOldPassword] = useState<string>();
+  const [newPassword, setNewPassword] = useState<string>();
   const [userType, setUserType] = useState<UserType>();
   const [loading, setLoading] = useState<boolean>(true);
   const [passwordChangeAction, setPasswordChangeAction] = useState<boolean>(false);
@@ -28,8 +35,53 @@ export default function MyAccount() {
   }
 
   const UpdateUserData = async () => {
-    const payload = {
+    try {
+      if(!userID) throw new Error("Sin datos de usuario...");
+      const url = `${BACKEND_URL}${ENDPOINTS.userUpdate}`;
+      if(!accessToken) throw new Error("Sin token de acceso...");
+      const payload: Partial<User> = {
+        id: userID,
+        full_name: `${userName}${userLastName}`,
+        email: userEmail,
+      }
+      const response = await (await fetch(url, GetRequestConfig("POST", "JSON", JSON.stringify(payload), accessToken))).json() as ResponsePayload<User>;
+      if(response.error) throw new Error(response.message);
+      Alert.alert("Completado", response.message, [
+        {
+          text: "Volver",
+          onPress: () => router.navigate("/(tabs)/my-account")
+        }
+      ]);
+    } catch (error) {
+      Alert.alert((error as Error).message)
+    }
+  }
 
+  const updatePassword = async () => {
+    try {
+      if(!userID) throw new Error("Sin datos de usuario...");
+      if(!oldPassword || !newPassword) throw new Error("Debe rellenar los campos");
+      const url = `${BACKEND_URL}${ENDPOINTS.userChangePassword}`;
+      const payload: UpdatePasswordInterface = {
+        oldPassword: oldPassword!,
+        newPassword: newPassword!,
+        id: userID
+      };
+      const response = await (await fetch(url, GetRequestConfig("POST", "JSON", JSON.stringify(payload), accessToken))).json() as ResponsePayload<boolean>;
+      if(response.error) throw new Error(response.message);
+      Alert.alert("Completado", response.message, [
+        {
+          text: "Volver",
+          onPress: () => router.navigate("/(tabs)/my-account")
+        }
+      ]);
+    } catch (error) {
+      Alert.alert("Error", (error as Error).message, [
+        {
+          text: "Volver",
+          onPress: () => router.navigate("/(tabs)/my-account")
+        }
+      ]);
     }
   }
 
@@ -39,6 +91,9 @@ export default function MyAccount() {
         const rawUserData = await AsyncStorage.getItem(USER_DATA);
         if(!rawUserData) throw new Error("NUD;Sin datos de usuario");
         const parsedUserData = JSON.parse(rawUserData) as User;
+        const token = await AsyncStorage.getItem(ACCESS_TOKEN);
+        if(!token) throw new Error("NAT;Sin token de acceso");
+        setAccessToken(token);
         setUserID(parsedUserData.id);
         console.log(parsedUserData);
         const [name, lastName] = parsedUserData.full_name.split(" ");
@@ -48,7 +103,7 @@ export default function MyAccount() {
         setUserType(parsedUserData.user_type);
       } catch (err) {
         const [errorCode, errorMessage] = (err as Error).message.split(";");
-        if(errorCode === "NUD") {
+        if(errorCode === "NUD" || errorCode === "NAT") {
           Alert.alert(errorMessage, "Debe iniciar sesión nuevamente", [
             {
                 text: "Ir a inicio",
@@ -94,6 +149,7 @@ export default function MyAccount() {
               style={[styles.input, inputCommon]}
               placeholder={userName || ""}
               placeholderTextColor={Colors[theme].icon}
+              onChangeText={setUserName}
             />
           </View>
 
@@ -103,6 +159,7 @@ export default function MyAccount() {
               style={[styles.input, inputCommon]}
               placeholder={userLastName || ""}
               placeholderTextColor={Colors[theme].icon}
+              onChangeText={setUserLastName}
             />
           </View>
 
@@ -114,6 +171,7 @@ export default function MyAccount() {
               placeholderTextColor={Colors[theme].icon}
               keyboardType="email-address"
               autoCapitalize="none"
+              onChangeText={setUserEmail}
             />
           </View>
 
@@ -145,6 +203,7 @@ export default function MyAccount() {
                   placeholder="••••••••"
                   placeholderTextColor={Colors[theme].icon}
                   secureTextEntry
+                  onChangeText={setOldPassword}
                 />
               </View>
 
@@ -155,6 +214,7 @@ export default function MyAccount() {
                   placeholder="••••••••"
                   placeholderTextColor={Colors[theme].icon}
                   secureTextEntry
+                  onChangeText={setNewPassword}
                 />
               </View>
             </>
@@ -169,11 +229,13 @@ export default function MyAccount() {
           }
         ]}>
           <TouchableOpacity style={[
-            styles.button,
-            {
-              backgroundColor: Colors[theme].tint
-            }
-          ]}>
+              styles.button,
+              {
+                backgroundColor: Colors[theme].tint
+              }
+            ]}
+            onPress={ () => (passwordChangeAction ? updatePassword() : UpdateUserData()) }
+          >
             <ThemedText style={{
               color: Colors[theme].background
             }}>Actualizar datos</ThemedText>
