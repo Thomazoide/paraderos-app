@@ -53,7 +53,6 @@ export default function BusStopsScreen() {
       setSelectedBusStop(busStop);
     } catch(err) {
       const [errorCode, errorMessage] = (err as Error).message.split(";");
-      console.log(errorCode, errorMessage, (err as Error).message);
       if(errorCode === "NUD"){
         Alert.alert(errorMessage, "Debe iniciar sesión nuevamente...", [
           {

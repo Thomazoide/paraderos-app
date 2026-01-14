@@ -9,6 +9,7 @@ import { UpdatePositionPayload } from '@/types/request-payloads';
 import { ResponsePayload } from '@/types/response-payloads';
 import { GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Checkbox } from 'expo-checkbox';
 import { Accuracy, LocationObject, hasStartedLocationUpdatesAsync, requestBackgroundPermissionsAsync, requestForegroundPermissionsAsync, startLocationUpdatesAsync, stopLocationUpdatesAsync } from "expo-location";
 import { router } from 'expo-router';
 import * as TaskManager from "expo-task-manager";
@@ -100,8 +101,11 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
   const [hasOrderAssigned, setHasOrderedAssigned] = useState<boolean>(false);
+  const [hideCompleted, setHideCompleted] = useState<boolean>(false);
   const colorScheme = useColorScheme()
   const theme = colorScheme ?? "light";
+
+  const uncompletedOrders = orders.filter( (o) => !o.completada );
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -140,7 +144,6 @@ export default function OrdersScreen() {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', (error as Error).message || "error de conexion");
       if((error as Error).message === "Unauthorized"){
         AsyncStorage.setItem(ACCESS_TOKEN, "");
@@ -219,7 +222,11 @@ export default function OrdersScreen() {
             <StarIcon color={Colors[theme].icon} />
           }
         </View>
-        <ThemedText>Estado: {item.completada ? 'Completada' : 'Pendiente'}</ThemedText>
+        <ThemedText>Estado: <ThemedText style={
+          item.completada ?
+          {color: "green"}
+          : {color: "orange"}
+        } > {item.completada ? 'Completada' : 'Pendiente'} </ThemedText> </ThemedText>
         <ThemedText>Ruta ID: {item.route_id}</ThemedText>
         <ThemedText>{ item.route && item.stops_visited ? visitedString : null}</ThemedText>
         {isUnassigned && !isAssignedToMe && !hasOrderAssigned ? 
@@ -242,8 +249,14 @@ export default function OrdersScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>Órdenes de Trabajo</ThemedText>
+      <ThemedView style={styles.hideCompletedBox} >
+        <Checkbox style={styles.checkbox} value={hideCompleted} onValueChange={setHideCompleted} color={hideCompleted ? Colors[theme].tint : undefined} />
+        <ThemedText>
+          Ocultar completadas
+        </ThemedText>
+      </ThemedView>
       <FlatList
-        data={orders}
+        data={ !hideCompleted ? orders : uncompletedOrders}
         renderItem={ item => renderItem(item)}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
@@ -286,4 +299,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  hideCompletedBox: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    marginBottom: 10,
+    gap: 5
+  },
+  checkbox: {
+    borderRadius: 4
+  }
 });

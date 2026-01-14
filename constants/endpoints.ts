@@ -22,10 +22,11 @@ export const ENDPOINTS = {
     userUpdate: "/usuarios/v1/actualizar", // POST
     userChangePassword: "/usuarios/v2/actualizar/clave", // POST
     visitForms: "/formularios/v1", // GET
-    visitFormCreate: "/formularios/v2/crear", // POST
-    visitFormFinish: "/formularios/v2/cerrar", // POST
+    visitFormCreate: "/formularios/v1/crear", // POST
+    visitFormFinish: (id: number) => `/formularios/v1/cerrar/${id}`, // POST
     visitFormByRouteID: (id: number) => `/formularios/v1/ruta/${id}`, // GET
     visitFormByUserID: (id: number) => `/formularios/v1/usuario/${id}`, // GET,
+    visitFormPictures: (id: number) => `/formularios/v2/get-pictures/${id}`,
     locationSocket: "/gps" //socket - SubscribeMessage: "actualizar-gps" con el MessageBody: `UpdatePositionPayload` de request-payloads.ts
 };
-export const BACKEND_URL = "http://192.168.1.2:3000";
+export const BACKEND_URL = "http://192.168.20.54:3000";

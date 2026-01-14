@@ -68,6 +68,8 @@ export interface VisitForm {
     route: Route | null;
     user: User;
     completed: boolean;
+    workOrderId: number | null;
+    workOrder: WorkOrder | null;
 };
 
 export interface WorkOrder {
@@ -80,4 +82,5 @@ export interface WorkOrder {
     route_id: number | null;
     route: Route | null;
     user_final: User | null;
+    forms: VisitForm[] | null;
 };

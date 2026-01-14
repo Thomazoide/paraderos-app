@@ -20,6 +20,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
     const [permission, requestPermission] = useCameraPermissions();
     const cameraRef = useRef<CameraView | null>(null);
     const [picData, setPicData] = useState<string>();
+    const [picURI, setPicURI] = useState<string>();
     const [loading, setLoading] = useState<boolean>(false);
     const [textInputData, setTextInputData] = useState<string>();
     const colorScheme = useColorScheme();
@@ -35,6 +36,7 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 skipProcessing: false
             });
             setPicData(picture.base64!)
+            setPicURI(picture.uri);
         }
     }
 
@@ -81,13 +83,21 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 creation_date: new Date().toISOString(),
                 completed: false,
                 description: textInputData,
-                picBeforeURL: picData,
                 route: parsedRouteData,
                 routeId: parsedRouteData.id,
                 user: parsedUserData,
-                userId: parsedUserData.id
+                userId: parsedUserData.id,
+                workOrderId: props.workOrder.id,
+                workOrder: props.workOrder
             }
-            const config = GetRequestConfig("POST", "JSON", JSON.stringify(payload), accessToken!);
+            const form = new FormData();
+            form.append("payload", JSON.stringify(payload));
+            form.append("file", {
+                uri: picURI,
+                name: `visit_${Date.now()}`,
+                type: "image/jpeg"
+            } as any);
+            const config = GetRequestConfig("POST", "FORM", form, accessToken!);
             const endpoint = `${BACKEND_URL}${ENDPOINTS.visitFormCreate}`;
             const response = await (await fetch(endpoint, config)).json() as ResponsePayload<VisitForm>;
             if(response.error) throw new Error(response.message);
@@ -132,13 +142,15 @@ export default function VisitFormComponent(props: {busStop: BusStop, workOrder: 
                 setLoading(false);
                 return;
             }
-            const payload = {
-                id: props.formID,
-                commentP2: textInputData,
-                picStr: picData
-            }
-            const endpoint = `${BACKEND_URL}${ENDPOINTS.visitFormFinish}`;
-            const config = GetRequestConfig("POST", "JSON", JSON.stringify(payload), accessToken!);
+            const form = new FormData();
+            form.append("finalComment", textInputData!);
+            form.append("file", {
+                uri: picURI,
+                name: `visit_${Date.now()}`,
+                type: "image/jpeg"
+            } as any);
+            const endpoint = `${BACKEND_URL}${ENDPOINTS.visitFormFinish(props.formID!)}`;
+            const config = GetRequestConfig("POST", "FORM", form, accessToken!);
             const response: ResponsePayload<VisitForm> = await (await fetch(endpoint, config)).json();
             if(response.error) throw new Error(response.message);
             if(response.data) {

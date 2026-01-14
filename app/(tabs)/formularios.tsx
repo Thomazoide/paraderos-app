@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import ViewSelectedForm from "@/components/view-selected-form";
 import VisitFormComponent from "@/components/visit-form";
 import { ACCESS_TOKEN, USER_DATA, WORK_ORDER_DATA } from "@/constants/client-data";
 import { BACKEND_URL, ENDPOINTS } from "@/constants/endpoints";
@@ -27,6 +28,7 @@ export default function FormsPage(){
     const [error, setError] = useState<Error | null>(null);
     const [hideCompleted, setHideCompleted] = useState<boolean>(false);
     const [formProps, setFormProps] = useState<visitFormProps>();
+    const [selectedForm, setSelectedForm] = useState<VisitForm>();
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
 
@@ -43,9 +45,7 @@ export default function FormsPage(){
             const response: ResponsePayload<VisitForm[]> = await (await fetch(endpoint, config)).json();
             if(response.error) throw new Error(response.message);
             setForms(response.data!);
-            console.log(response.data);
         } catch(err) {
-            console.log(err);
             setError(err as Error);
         } finally {
             setLoading(false);
@@ -94,7 +94,7 @@ export default function FormsPage(){
     
 
     return(
-        !formProps ?
+        !formProps && !selectedForm ?
         <ThemedView style={styles.listContainer} >
             <ThemedView style={styles.header} >
                 <ThemedText type="title" style={styles.headerTitle} >
@@ -158,7 +158,7 @@ export default function FormsPage(){
                                         Paradero #{item.busStop?.codigo}
                                     </ThemedText>
                                 </ThemedView>
-                                { !item.completed &&
+                                { !item.completed ?
                                     <TouchableOpacity
                                         style={[
                                             styles.actionButton,
@@ -171,6 +171,20 @@ export default function FormsPage(){
                                     >
                                         <ThemedText style={styles.actionButtonText}>
                                             Completar formulario
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                    :
+                                    <TouchableOpacity style={[
+                                        styles.actionButton,
+                                        {
+                                            backgroundColor: Colors[theme].tint
+                                        }
+                                    ]}
+                                    activeOpacity={0.8}
+                                    onPress={() => setSelectedForm(item)}
+                                    >
+                                        <ThemedText style={styles.actionButtonText}>
+                                            Ver formulario
                                         </ThemedText>
                                     </TouchableOpacity>
                                 }
@@ -190,7 +204,12 @@ export default function FormsPage(){
             }
         </ThemedView>
         :
+        formProps && !selectedForm ?
         <VisitFormComponent busStop={formProps.busStop} cancelAction={ () => setFormProps(undefined) } status={formProps.status} workOrder={formProps.workOrder} formID={formProps.formID}/>
+        :
+
+        !formProps && selectedForm &&
+        <ViewSelectedForm form={selectedForm} closeAction={ () => setSelectedForm(undefined) } />
     );
 }
 
@@ -260,7 +279,8 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 20,
-        paddingBottom: 40
+        paddingBottom: 120,
+        
     },
     card: {
         borderRadius: 16,
