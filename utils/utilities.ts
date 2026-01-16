@@ -9,4 +9,10 @@ export function GetRequestConfig(method: METHOD, type?: REQUEST_TYPE, body?: Bod
         },
         body
     };
+};
+export function FormatDate(ISOStringDate: string): string {
+    const [date, hours] = ISOStringDate.split("T");
+    const [sYear, sMonth, sDay] = date.split("-");
+    const formattedHours =hours.slice(0, hours.length-1);
+    return `${sDay}-${sMonth}-${sYear} ${formattedHours}`;
 }

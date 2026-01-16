@@ -7,7 +7,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Route, User, WorkOrder } from '@/types/entitites';
 import { UpdatePositionPayload } from '@/types/request-payloads';
 import { ResponsePayload } from '@/types/response-payloads';
-import { GetRequestConfig } from '@/utils/utilities';
+import { FormatDate, GetRequestConfig } from '@/utils/utilities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Checkbox } from 'expo-checkbox';
 import { Accuracy, LocationObject, hasStartedLocationUpdatesAsync, requestBackgroundPermissionsAsync, requestForegroundPermissionsAsync, startLocationUpdatesAsync, stopLocationUpdatesAsync } from "expo-location";
@@ -16,7 +16,7 @@ import * as TaskManager from "expo-task-manager";
 import { jwtDecode } from 'jwt-decode';
 import { StarIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { io } from "socket.io-client";
 
 TaskManager.defineTask(LOCATION_BACKGROUND_TASK, async ({ data, error }) => {
@@ -99,8 +99,7 @@ export const stopLocationTracking = async () => {
 export default function OrdersScreen() {
   const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [hasOrderAssigned, setHasOrderedAssigned] = useState<boolean>(false);
+  const [takenOrderID, setTakenOrderID] = useState<number>(0);
   const [hideCompleted, setHideCompleted] = useState<boolean>(false);
   const colorScheme = useColorScheme()
   const theme = colorScheme ?? "light";
@@ -111,43 +110,19 @@ export default function OrdersScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
+      if (!token) throw new Error("Sin token de acceso");
       const decoded: Partial<User> = jwtDecode(token);
-      setUserId(decoded.id!);
-
       const response = await fetch(
-        `${BACKEND_URL}${ENDPOINTS.workOrders}`,
+        `${BACKEND_URL}${ENDPOINTS.workOrdersByUserID(decoded.id!)}`,
         GetRequestConfig('GET', 'JSON', undefined, token)
       );
       const data: ResponsePayload<WorkOrder[]> = await response.json();
-      
-      if (!data.error && data.data) {
-        setOrders(data.data);
-        await startLocationTracking();
-        const assignedOrders = data.data.filter( (o) => (!o.completada && o.user_id === decoded.id) );
-        if(assignedOrders.length > 0) {
-          setHasOrderedAssigned(true);
-          await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(assignedOrders[0]));
-          if(assignedOrders[0].route){
-            await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(assignedOrders[0].route));
-          } else {
-            const endpoint = `${BACKEND_URL}${ENDPOINTS.routes}`;
-            const response = await (await fetch(endpoint, GetRequestConfig("GET", "JSON", undefined, token))).json() as ResponsePayload<Route>;
-            if(response.error) throw new Error(response.message);
-            if(response.data) await AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
-          }
-        } else {
-          await AsyncStorage.multiRemove([WORK_ORDER_DATA, ROUTE_DATA]);
-        }
-      } else {
-        throw new Error(data.message);
-      }
+      if(data.error) throw new Error(data.message);
+      setOrders(data.data!);
     } catch (error) {
-      Alert.alert('Error', (error as Error).message || "error de conexion");
+      Alert.alert('Error', error instanceof Error ? error.message : "error de conexion");
       if((error as Error).message === "Unauthorized"){
-        AsyncStorage.setItem(ACCESS_TOKEN, "");
-        AsyncStorage.setItem(USER_DATA, "");
+        AsyncStorage.multiRemove([ACCESS_TOKEN, USER_DATA, WORK_ORDER_DATA, ROUTE_DATA]);
         router.replace("/login");
       }
     } finally {
@@ -155,17 +130,15 @@ export default function OrdersScreen() {
     }
   };
 
-  const fetchRoute = async (workOrder: WorkOrder) => {
+  const fetchRoute = async (routeID: number) => {
     try {
       const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
       if(!accessToken) throw new Error("Sesión expirada");
-      const endpoint = `${BACKEND_URL}${ENDPOINTS.routeByID(workOrder.route_id!)}`;
+      const endpoint = `${BACKEND_URL}${ENDPOINTS.routeByID(routeID)}`;
       const config = GetRequestConfig("GET", "JSON", undefined, accessToken);
       const response = await (await fetch(endpoint, config)).json() as ResponsePayload<Route>;
       if(response.error) throw new Error(response.message);
-      AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(workOrder));
       AsyncStorage.setItem(ROUTE_DATA, JSON.stringify(response.data));
-      await fetchOrders();
     } catch (err) {
       Alert.alert("Error", (err as Error).message);
     }
@@ -174,54 +147,47 @@ export default function OrdersScreen() {
   
 
   useEffect( () => {
+    const checkTakenOrder = async () => {
+      const strData = await AsyncStorage.getItem(WORK_ORDER_DATA);
+      if(!strData) return;
+      const takenOrder = JSON.parse(strData) as WorkOrder;
+      setTakenOrderID(takenOrder.id);
+      return;
+    };
+    checkTakenOrder();
     fetchOrders();
   }, [] );
 
   const handleTakeOrder = async (workOrder: WorkOrder) => {
     try {
-      //Obtener token de acceso
       const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN);
       const userDataExists = await AsyncStorage.getItem(USER_DATA);
       if(!userDataExists) throw new Error("Sin datos de usuario, se recomienda iniciar sesion nuevamente");
-      const userData = JSON.parse(userDataExists!) as Partial<User>;
       if(!accessToken) throw new Error("Sesión expirada");
-      //Guardar los datos asincronos
-      const updatedWO = workOrder;
-      updatedWO.user_id = userData.id!;
-      //Actualizar los datos de la ot en bbdd para que sea asgnada a un usuario de terreno
-      const endpoint = `${BACKEND_URL}${ENDPOINTS.workOrders}`;
-      const config = GetRequestConfig("POST", "JSON", JSON.stringify(updatedWO), accessToken);
-      const response = await (await fetch(endpoint, config)).json() as ResponsePayload<WorkOrder>;
-      if(response.error) throw new Error(response.message);
-      await fetchRoute(response.data!);
+      await AsyncStorage.setItem(WORK_ORDER_DATA, JSON.stringify(workOrder));
+      await fetchRoute(workOrder.route_id!);
       await startLocationTracking();
-      Alert.alert("Orden asignada", "No podra tomar mas ordenes hasta haber terminado la asiganda");
+      Alert.alert(`Órden #${workOrder.id} activa`, "Solo puede tener una órden activa a la vez");
     } catch (err) {
-      Alert.alert("Error", (err as Error).message);
+      Alert.alert("Error", err instanceof Error ? err.message : "Error desconocido");
       
     }
-
   };
 
   const renderItem = ({ item }: { item: WorkOrder }) => {
-    const isAssignedToMe = item.user_id === userId;
-    const isUnassigned = item.user_id === null;
     const visitedString = `Paraderos visitados: ${item.stops_visited?.length} de ${item.route?.route_points.length}`
 
     return (
-      <View style={[
-        styles.card,
-        {
-          borderColor: Colors[theme].icon
-        }
+      <ThemedView style={[
+        styles.card
       ]}>
-        <View style={styles.cardTitle} >
+        <ThemedView style={styles.cardTitle} >
           <ThemedText type="subtitle">Orden #{item.id}</ThemedText>
           {
-            isAssignedToMe &&
+            takenOrderID === item.id &&
             <StarIcon color={Colors[theme].icon} />
           }
-        </View>
+        </ThemedView>
         <ThemedText>Estado: <ThemedText style={
           item.completada ?
           {color: "green"}
@@ -229,12 +195,16 @@ export default function OrdersScreen() {
         } > {item.completada ? 'Completada' : 'Pendiente'} </ThemedText> </ThemedText>
         <ThemedText>Ruta ID: {item.route_id}</ThemedText>
         <ThemedText>{ item.route && item.stops_visited ? visitedString : null}</ThemedText>
-        {isUnassigned && !isAssignedToMe && !hasOrderAssigned ? 
-          <Button title="Tomar orden" onPress={() => handleTakeOrder(item)} />
-          : isUnassigned && !isAssignedToMe && hasOrderAssigned &&
-          <Button title="Ud. ya tiene una orden tomada" disabled/>
+        <ThemedText>Fecha de creación: {"\n"} {FormatDate(item.creation_date)}</ThemedText>
+        {
+          item.complete_date &&
+          <ThemedText>Fecha de cierre: {"\n"} {FormatDate(item.complete_date)}</ThemedText>
         }
-      </View>
+        {
+          !item.completada &&
+          <Button title={ takenOrderID === item.id ? "Orden activa" : "Establecer como la orden activa" } disabled={takenOrderID === item.id} onPress={() => handleTakeOrder(item)} />
+        }
+      </ThemedView>
     );
   };
 
@@ -282,6 +252,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   card: {
+    elevation: 3,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -295,7 +266,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   cardTitle: {
-    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
   },
