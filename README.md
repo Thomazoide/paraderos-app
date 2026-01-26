@@ -1,50 +1,65 @@
-# Welcome to your Expo app 👋
+# Paraderos App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil (Expo + React Native + TypeScript) para consultar y gestionar paraderos, formularios y cuentas de usuario.
 
-## Get started
+---
 
-1. Install dependencies
+## Descripción
 
-   ```bash
-   npm install
-   ```
+`paraderos-app` es una aplicación móvil construida con Expo y TypeScript que ofrece navegación basada en archivos (app directory) para mostrar paradas de transporte, formularios de reporte/visita y gestión de cuenta. Incluye componentes reutilizables, temas y utilidades para integrarse con APIs externas definidas en `constants/endpoints.ts`.
 
-2. Start the app
+## Tecnologías
 
-   ```bash
-   npx expo start
-   ```
+- Expo (React Native)
+- TypeScript
+- Expo Router (estructura `app/` con `_layout.tsx`)
+- Android native project (carpeta `android/`) para builds locales y configuración nativa
 
-In the output, you'll find options to open the app in a
+## Estructura del proyecto (resumen)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- `app/` — Entradas de la app y pantallas principales (`index.tsx`, `login.tsx`, `_layout.tsx`, pestañas en `(tabs)/`)
+- `components/` — Componentes UI reutilizables y subcarpeta `ui/` con controles específicos
+- `assets/` — Imágenes y recursos estáticos
+- `constants/` — Configuración y endpoints (API)
+- `hooks/` — Hooks personalizados para tema y esquema de colores
+- `utils/` — Funciones utilitarias generales
+- `types/` — Tipos TypeScript para entidades y payloads
+- `android/` — Proyecto Android nativo generado por Expo (para builds y ajustes nativos)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Instalación (desarrollo)
 
-## Get a fresh project
+Requisitos previos: Node.js (16+ recomendado), Yarn o npm, Expo CLI.
 
-When you're ready, run:
+Instalar dependencias:
 
 ```bash
-npm run reset-project
+npm install
+# o
+yarn install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Iniciar el servidor de desarrollo (Expo):
 
-## Learn more
+```bash
+npm run start
+# o
+yarn start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Ejecutar en Android (emulador o dispositivo conectado):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+expo run:android
+```
 
-## Join the community
+Para builds en la nube con EAS (si está configurado):
 
-Join our community of developers creating universal apps.
+```bash
+eas build -p android
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Desarrollo y pruebas
+
+- La navegación y pantallas principales están en `app/` usando componentes en `components/`.
+- Añade nuevas pantallas en `app/` y subrutas en `(tabs)/` para pestañas.
+- Estilos y tema centralizados en `constants/theme.ts` y `hooks/use-theme-color.ts`.
