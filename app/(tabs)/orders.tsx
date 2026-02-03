@@ -117,6 +117,7 @@ export default function OrdersScreen() {
         GetRequestConfig('GET', 'JSON', undefined, token)
       );
       const data: ResponsePayload<WorkOrder[]> = await response.json();
+      if(!data.data || data.data!.length === 0) AsyncStorage.multiRemove([ WORK_ORDER_DATA, ROUTE_DATA]);
       if(data.error) throw new Error(data.message);
       setOrders(data.data!);
     } catch (error) {
