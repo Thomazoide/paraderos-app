@@ -159,6 +159,7 @@ export default function OrdersScreen() {
       if (wo_str) {
         const parsedWO = JSON.parse(wo_str) as WorkOrder;
         const woID = parsedWO.id;
+        console.log(woID)
         const woExists = data.data!.filter((wo) => wo.id === woID)[0];
         if (!woExists)
           await AsyncStorage.multiRemove([WORK_ORDER_DATA, ROUTE_DATA]);

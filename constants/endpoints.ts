@@ -30,4 +30,4 @@ export const ENDPOINTS = {
   visitFormPictures: (id: number) => `/formularios/v2/get-pictures/${id}`,
   locationSocket: "/gps", //socket - SubscribeMessage: "actualizar-gps" con el MessageBody: `UpdatePositionPayload` de request-payloads.ts
 };
-export const BACKEND_URL = "http://192.168.20.156:3000";
+export const BACKEND_URL = "http://192.168.1.4:3000";

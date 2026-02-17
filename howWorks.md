@@ -1,357 +1,241 @@
-# Documentación de Módulos - Paraderos App
+# Guía de Uso - Aplicación Paraderos
 
-## Descripción General
-
-Paraderos App es una aplicación móvil construida con Expo y React Native que permite a los trabajadores de ruta gestionar paraderos (paradas de autobús), formularios de visita, órdenes de trabajo y su información personal. A continuación se detalla el funcionamiento de cada módulo principal.
+Bienvenido a la aplicación Paraderos. Esta guía te ayudará a entender cómo usar cada una de las funcionalidades disponibles en la aplicación.
 
 ---
 
-## 📍 Módulo: Paraderos (bus-stops.tsx)
+## 1. Inicio de Sesión
 
-### Propósito
+El primer paso para usar la aplicación es iniciar sesión con tus credenciales.
 
-Gestionar la visualización y selección de paraderos (paradas de autobús) en una ruta asignada al trabajador. Permite tanto una vista en mapa interactivo como una vista en lista de todos los paraderos disponibles.
+### Pasos para iniciar sesión:
 
-### Funcionalidades Principales
+1. **Abre la aplicación** - Verás la pantalla de bienvenida con el formulario de login
+2. **Ingresa tu usuario** - Escribe tu nombre de usuario en el campo "Usuario"
+3. **Ingresa tu contraseña** - Escribe tu contraseña en el campo "Contraseña"
+4. **Toca el botón "Iniciar Sesión"** - El sistema validará tus credenciales
+5. **Acceso a la aplicación** - Una vez autenticado, serás redirigido a la pantalla de Órdenes de Trabajo
 
-#### 1. **Visualización del Mapa**
-
-- Muestra un mapa interactivo con marcadores de todos los paraderos disponibles
-- Utiliza Google Maps como proveedor de mapas
-- Muestra la ubicación actual del usuario en tiempo real
-- Centro del mapa configurable mediante constantes
-
-#### 2. **Lectura de Paraderos**
-
-- Obtiene la lista completa de paraderos del Backend mediante endpoint `/bus-stops`
-- Almacena los datos en estado local
-- Carga inicial y actualización mediante "pull to refresh"
-- Validación del token de autenticación antes de hacer solicitudes
-
-#### 3. **Búsqueda y Filtrado**
-
-- Filtro de paraderos por código en tiempo real
-- Búsqueda sensible a mayúsculas/minúsculas
-- Visualización inmediata de resultados
-
-#### 4. **Cálculo de Distancias**
-
-- Calcula la distancia en kilómetros entre la posición actual del usuario y cada paradero
-- Utiliza la fórmula de Haversine para cálculos geográficos precisos
-- Muestra las distancias en el mapa y lista
-
-#### 5. **Vista de Lista vs Mapa**
-
-- Permite alternar entre vista de mapa y vista de lista
-- Lista muestra todos los paraderos con su distancia relativa
-- Cada entrada de paradero es seleccionable
-
-#### 6. **Selección de Paradero**
-
-- Al seleccionar un paradero, valida que:
-  - Exista una orden de trabajo y ruta activas
-  - No hay formularios incompletos asignados al usuario en ese paradero
-- Si todo es válido, abre la vista para crear/completar un formulario de visita
-- Muestra alertas con instrucciones si hay validaciones fallidas
-
-#### 7. **Persistencia de Datos**
-
-- Guarda en AsyncStorage:
-  - Datos de la orden de trabajo activa (WORK_ORDER_DATA)
-  - Datos de la ruta asociada (ROUTE_DATA)
-- Lee estos datos al cargar para mantener el contexto
-
-### Estados Principales
-
-- `busStops`: Lista de paraderos disponibles
-- `loading`: Indicador de carga
-- `isMapMode`: Controla vista de mapa vs lista
-- `searchQuery`: Búsqueda actual
-- `selectedBusStop`: Paradero actualmente seleccionado
-- `userLocation`: Ubicación GPS actual del usuario
+### Consideraciones importantes:
+- Asegúrate de escribir correctamente tu usuario y contraseña
+- Si olvidas tus credenciales, contacta con el administrador
+- La aplicación mantendrá tu sesión activa mientras uses la app
 
 ---
 
-## 📋 Módulo: Formularios (formularios.tsx)
+## 2. Órdenes de Trabajo
 
-### Propósito
+Las órdenes de trabajo son las tareas que debes completar. En esta sección puedes ver todas tus órdenes asignadas y su estado.
 
-Gestionar los formularios de visita (VisitForm) que el trabajador debe completar en cada paradero. Permite visualizar, filtrar y completar formularios de visita.
+### ¿Qué verás en esta pantalla?
 
-### Funcionalidades Principales
+- **Lista de tus órdenes de trabajo** con la información principal de cada una
+- **Estado de cada orden** (pendiente, en proceso, completada, etc.)
+- **Detalles de la orden** (fecha, ruta asignada, número de referencia)
 
-#### 1. **Carga de Formularios**
+### Funcionalidades principales:
 
-- Obtiene todos los formularios asignados al usuario actual
-- Utiliza endpoint `/visit-forms/user/:userId`
-- Requiere token de autenticación válido
-- Muestra indicador de carga mientras obtiene los datos
+#### Seleccionar una orden
+1. Toca cualquier orden de la lista
+2. Se abrirá una vista detallada con toda la información
+3. Podrás ver:
+   - Ruta asignada
+   - Número de paraderos a visitar
+   - Total de formularios a completar
+   - Detalles específicos de la orden
 
-#### 2. **Filtrado de Formularios**
+#### Activar el seguimiento de ubicación
+- Cuando selecciones una orden, puedes **activar el rastreo de ubicación**
+- Esto permite que la aplicación registre tu posición en tiempo real
+- El sistema envía actualizaciones automáticas de tu localización mientras completas la orden
+- **Beneficio**: El administrador puede ver dónde estás en cada momento
 
-- Opción de checkbox para "Ocultar completadas"
-- Muestra solo formularios pendientes cuando está activo
-- Actualización dinámica de la lista
+#### Actualizar la lista
+- Desliza la pantalla hacia abajo para **refrescar** las órdenes de trabajo
+- Esto sincronizará los cambios recientes desde el servidor
 
-#### 3. **Visualización de Formularios**
-
-Cada formulario se muestra como una tarjeta con:
-
-- **Número de Formulario**: ID único del formulario
-- **Estado**: Dos estados posibles:
-  - 🟢 **Completada**: Formulario terminado (fondo verde)
-  - 🟠 **Pendiente**: Formulario sin completar (fondo amarillo)
-- **Código de Paradero**: Referencia al paradero donde se debe completar
-- **Acción**: Botón dinámico
-
-#### 4. **Acciones según Estado**
-
-- **Formulario Pendiente**: Botón "Completar formulario"
-  - Al presionar, se abre el componente VisitFormComponent
-  - Pasa como props: paradero, orden de trabajo, ID del formulario
-- **Formulario Completado**: Botón "Ver formulario"
-  - Muestra vista de solo lectura del formulario completado
-  - Utiliza componente ViewSelectedForm
-
-#### 5. **Actualización de Datos**
-
-- Soporte para "pull to refresh"
-- Re-obtiene la lista de formularios desde el Backend
-- Mantiene sincronización con cambios en el servidor
-
-#### 6. **Manejo de Errores**
-
-- Valida existencia de token de acceso
-- Valida existencia de datos de usuario
-- Muestra mensajes de error descriptivos al usuario
-- Opción de reintentar operación
-
-### Estados Principales
-
-- `forms`: Lista de formularios del usuario
-- `loading`: Indicador de carga
-- `hideCompleted`: Filtro de formularios completados
-- `selectedForm`: Formulario actualmente seleccionado para visualizar
-- `formProps`: Props para abrir editor de formulario
+### Pistas visuales:
+- 📍 Icono de ubicación: Indica que el seguimiento está activo
+- ⭐ Estrella: Marca órdenes que has marcado como favoritas o importantes
 
 ---
 
-## 📦 Módulo: Órdenes de Trabajo (orders.tsx)
+## 3. Paraderos (Puntos de Parada)
 
-### Propósito
+Los paraderos son los puntos de parada específicos que debes visitar según tu orden de trabajo. Esta sección te permite gestionar y visitarlos.
 
-Gestionar las órdenes de trabajo (WorkOrder) asignadas al trabajador. Permite visualizar, aceptar/rechazar órdenes y gestionar el seguimiento de ubicación GPS en tiempo real mientras una orden está activa.
+### ¿Qué verás en esta pantalla?
 
-### Funcionalidades Principales
+Dos formas de visualizar los paraderos:
 
-#### 1. **Carga de Órdenes de Trabajo**
+#### Vista de Mapa (predeterminada)
+- **Mapa interactivo** mostrando la ubicación de todos los paraderos
+- **Marcadores** en el mapa que indican cada parada
+- **Tu ubicación actual** se muestra en el mapa
+- Puedes **hacer zoom y desplazarte** libremente por el mapa
 
-- Obtiene todas las órdenes asignadas al usuario actual
-- Utiliza endpoint `/work-orders/user/:userId`
-- Valida token JWT para identificar al usuario
-- Diferencia entre órdenes completadas y pendientes
+#### Vista de Lista
+- Toca el botón para cambiar a **vista de lista**
+- Ve todos los paraderos en formato de lista ordenada
+- Cada paradero muestra:
+  - Nombre del parada
+  - Distancia desde tu ubicación actual
+  - Dirección
+  - Estado (visitado/no visitado)
 
-#### 2. **Filtrado de Órdenes**
+### Cómo visitar un paradero:
 
-- Opción de checkbox para "Ocultar completadas"
-- Por defecto muestra solo órdenes sin completar (`uncompletedOrders`)
-- Los usuarios pueden ver todas o filtradas según necesidad
+1. **Selecciona un paradero** desde el mapa o la lista
+2. Se abrirá un formulario de **"Visita del Paradero"**
+3. Completa la siguiente información:
+   - Datos de contacto si es necesario
+   - Observaciones sobre la visita
+   - Cualquier otro detalle requerido
+4. Una vez completado, toca **"Registrar Visita"**
+5. El sistema registrará que has visitado ese paradero
 
-#### 3. **Visualización de Órdenes**
+### Funcionalidades útiles:
 
-Cada orden de trabajo muestra:
+#### Búsqueda de paraderos
+- Usa el campo de **búsqueda** para encontrar un paradero específico
+- Puedes buscar por nombre o número identificador
 
-- **Código de Orden**: Identificador único
-- **Ruta Asignada**: Referencia a la ruta a recorrer
-- **Paraderos**: Cantidad total de paraderos en la ruta
-- **Estado**: Completada/Pendiente
+#### Filtrado de paraderos
+- **Muestra solo los paraderos de mi ruta**: Activa esta opción para ver solo los que debes visitar en esta orden
+- Esto facilita el enfoque en tu ruta actual
 
-#### 4. **Aceptar Orden de Trabajo**
-
-Cuando el usuario acepta una orden:
-
-- **Carga la Ruta**: Obtiene datos de paraderos y formularios asociados mediante endpoint `/routes/:routeID`
-- **Guarda en AsyncStorage**:
-  - Datos de la orden (WORK_ORDER_DATA)
-  - Datos de la ruta (ROUTE_DATA)
-- **Inicia Seguimiento de GPS**:
-  - Solicita permisos de ubicación (foreground y background)
-  - Inicia actualización de ubicación cada 10 segundos
-  - Transmite la ubicación GPS al Backend mediante WebSocket
-
-#### 5. **Rastreo de Ubicación GPS**
-
-- **Tarea de Fondo** (LOCATION_BACKGROUND_TASK):
-  - Se ejecuta automáticamente cada vez que cambia la ubicación
-  - Funciona incluso cuando la app está en background
-  - Emite evento "actualizar-gps" mediante Socket.IO al servidor
-  - Incluye: ID del usuario, latitud, longitud, timestamp
-
-- **Permisos Requeridos**:
-  - Ubicación en foreground (mientras la app está activa)
-  - Ubicación en background (cuando la app está minimizada)
-  - Notificación visual para indicar que se está monitoreando
-
-#### 6. **Detener Seguimiento**
-
-- Al completar o rechazar una orden se detiene el rastreo GPS
-- Se limpia el estado de forma segura
-- Se puede reanudar si se aceptarta otra orden
-
-#### 7. **Sincronización con Backend**
-
-- Valida que las órdenes aún existan en el servidor
-- Limpia datos obsoletos de AsyncStorage si la orden fue eliminada
-- Re-autentica cuando hay expiración de token
-- Redirige al login si sesión está expirada
-
-#### 8. **Manejo de Errores**
-
-- Manejo de errores de conexión
-- Validación de permisos de ubicación
-- Manejo de timeout en operaciones WebSocket
-- Logging de errores en modo offline
-
-### Estados Principales
-
-- `orders`: Lista de órdenes de trabajo del usuario
-- `loading`: Indicador de carga
-- `takenOrderID`: ID de la orden actualmente activa
-- `hideCompleted`: Filtro de órdenes completadas
-
-### Procesos en Segundo Plano
-
-- **Socket.IO**: Conexión WebSocket para actualizar GPS
-- **TaskManager**: Tarea de fondo para rastreo de ubicación
-- **Location API**: Actualización continua de coordenadas GPS
+#### De-seleccionar paraderos
+- Puedes **desmarcar paraderos** si necesitas cambiar de selección o revisitar alguno
 
 ---
 
-## 👤 Módulo: Mi Cuenta (my-account.tsx)
+## 4. Formularios
 
-### Propósito
+Los formularios son documentos digitales que debes completar en cada visita. Aquí puedes ver, editar y enviar formularios.
 
-Permitir al usuario visualizar y modificar su información personal, cambiar contraseña y gestionar su perfil de usuario.
+### ¿Qué verás en esta pantalla?
 
-### Funcionalidades Principales
+Una lista con todos los formularios disponibles, divididos en dos categorías:
 
-#### 1. **Carga de Datos del Usuario**
+#### Formularios Pendientes (Incompletos)
+- Formularios que aún no has completado
+- Icono de **reloj** (⏱) indicando estado pendiente
+- Puedes hacer click para abrir y completarlos
 
-- Obtiene información del usuario desde AsyncStorage (guardada al login)
-- Extrae datos guardados:
-  - ID del usuario
-  - Nombre completo (se separa en nombre y apellido)
-  - Email
-  - Tipo de usuario (user_type)
-  - Token de acceso
-- Muestra indicador de carga mientras se obtienen los datos
+#### Formularios Completados
+- Formularios que ya has rellenado y entregado
+- Icono de **check/círculo completado** (✓)
+- Puedes consultarlos de referencia
 
-#### 2. **Sección de Datos Personales**
+### Cómo completar un formulario:
 
-Formulario editable con campos:
+1. **Toca un formulario pendiente** de la lista
+2. Se abrirá el formulario con todos los campos necesarios
+3. **Completa toda la información requerida**:
+   - Datos del paradero visitado
+   - Información de la visita
+   - Observaciones
+   - Anexos (fotos si es necesario)
+4. Verifica que todo esté correcto
+5. Toca el botón **"Enviar Formulario"** o **"Guardar"**
+6. El formulario se marcará como completado
 
-- **Nombre**: Campo de texto editable
-- **Apellido**: Campo de texto editable
-- **Email**: Campo de texto editable con teclado de email
-- **Tipo de Usuario**: Campo de solo lectura (muestra el tipo: admin, operador, etc.)
+### Opciones útiles:
 
-#### 3. **Actualizar Datos del Usuario**
+#### Ocultar formularios completados
+- Activa la opción **"Ocultar completados"** para ver solo los pendientes
+- Esto te ayuda a enfocarte en lo que falta por hacer
 
-- Botón "Actualizar Información"
-- Valida que existan datos de usuario
-- Envía solicitud POST a endpoint `/user/update`
-- Payload incluye:
-  - ID del usuario
-  - Nombre completo (concatenado)
-  - Email actualizado
-- Muestra alerta de confirmación al completar
-- Valida token de acceso antes de enviar
+#### Actualizar lista
+- Desliza hacia abajo para **refrescar** y sincronizar formularios
 
-#### 4. **Sección de Cambio de Contraseña**
+#### Consultar formulario completado
+- Toca cualquier formulario completado para revisar la información que enviaste
 
-- Checkbox para activar/desactivar formulario de cambio
-- Cuando está inactivo, se oculta el formulario
-- Al activar, aparecen dos campos:
-  - **Contraseña Actual**: Para verificar identidad
-  - **Nueva Contraseña**: Para establecer nueva contraseña
+### Tipos de formularios:
 
-#### 5. **Cambiar Contraseña**
-
-- Valida que ambos campos estén completados
-- Envía solicitud POST a endpoint `/user/change-password`
-- Payload incluye:
-  - ID del usuario
-  - Contraseña antigua
-  - Contraseña nueva
-- Requiere autenticación con token de acceso
-- Muestra confirmación o error según resultado
-
-#### 6. **Gestión de Sesión**
-
-- En caso de errores graves (datos de usuario no encontrados):
-  - Limpia AsyncStorage de:
-    - Datos de usuario (USER_DATA)
-    - Token de acceso (ACCESS_TOKEN)
-    - Orden de trabajo activa (WORK_ORDER_DATA)
-    - Ruta activa (ROUTE_DATA)
-  - Redirige al usuario a pantalla de login
-
-#### 7. **Diseño y UX**
-
-- Formularios con validación clara de campos
-- Estilos adaptables a tema claro/oscuro
-- Inputs con colores y bordes según tema
-- Scroll para contenido que excede la pantalla
-- KeyboardAvoidingView para no ocultar campos al escribir
-
-### Estados Principales
-
-- `userID`: ID del usuario actual
-- `userName`: Nombre del usuario (editable)
-- `userLastName`: Apellido del usuario (editable)
-- `userEmail`: Email del usuario (editable)
-- `oldPassword`: Contraseña actual (para validación)
-- `newPassword`: Nueva contraseña a establecer
-- `userType`: Tipo de usuario (solo lectura)
-- `loading`: Indicador de carga inicial
-- `passwordChangeAction`: Toggle para mostrar/ocultar formulario de contraseña
-- `accessToken`: Token para autenticación de solicitudes
-
-### Flujos de Error
-
-- **Sin datos de usuario**: Muestra alerta y redirige a login
-- **Sin token de acceso**: Muestra alerta y redirige a login
-- **Campos vacíos**: Alerta de validación
-- **Error de servidor**: Muestra mensaje de error con opción de reintento
+Los formularios pueden tener diferentes campos según el tipo de visita:
+- **Información de cliente**: Datos de contacto, empresa, etc.
+- **Detalles de servicio**: Tipo de servicio realizado, duración, etc.
+- **Observaciones**: Notas adicionales u incidencias
+- **Confirmación**: Firma o confirmación de la visita
 
 ---
 
-## 🔄 Flujo General de la Aplicación
+## 5. Mi Cuenta
 
-1. **Login**: Usuario se autentica → Se guardan datos en AsyncStorage
-2. **Órdenes**: Usuario acepta una orden → Se cargan paraderos y formularios
-3. **Paraderos**: Usuario navega paraderos → Puede seleccionar uno
-4. **Formularios**: Usuario completa formularios en paraderos seleccionados
-5. **GPS**: Mientras hay orden activa, se rastrea la ubicación constantemente
-6. **Cuenta**: Usuario puede actualizar perfil e información en cualquier momento
+En esta sección puedes ver y modificar tu información personal y cambiar tu contraseña.
+
+### Información visible en Mi Cuenta:
+
+- **Nombre y Apellido**: Tu identificación en el sistema
+- **Email**: Tu correo de contacto
+- **Tipo de Usuario**: Tu rol en la aplicación (e.g., vendedor, repartidor, inspector)
+- **Otros datos**: Información adicional de tu perfil
+
+### Modificar tu perfil:
+
+1. **Toca el campo** que deseas editar (Nombre, Apellido o Email)
+2. **Realiza los cambios** necesarios
+3. Verifica que la información sea correcta
+4. Toca el botón **"Guardar Cambios"** o **"Actualizar Perfil"**
+5. Recibirás una confirmación si los cambios se guardaron correctamente
+
+### Cambiar tu contraseña:
+
+1. Toca la opción **"Cambiar Contraseña"**
+2. Se activarán los campos de contraseña:
+   - **Contraseña Actual**: Ingresa tu contraseña actual (por seguridad)
+   - **Nueva Contraseña**: Escribe tu nueva contraseña
+3. La nueva contraseña debe cumplir con requisitos de seguridad:
+   - Mínimo 8 caracteres
+   - Combinar letras y números es recomendado
+4. Toca **"Guardar Nueva Contraseña"**
+5. Recibirás una confirmación cuando se actualice correctamente
+
+### Consideraciones de seguridad:
+
+- ⚠️ Asegúrate de estar en un lugar seguro cuando cambies tu contraseña
+- ⚠️ No compartas tu contraseña con otros usuarios
+- ⚠️ Si cambias tu contraseña, deberás iniciar sesión nuevamente
 
 ---
 
-## 🔐 Seguridad y Autenticación
+## Flujo típico de uso diario
 
-- **Token JWT**: Se valida en cada solicitud al Backend
-- **AsyncStorage**: Almacena datos locales de forma segura
-- **Socket.IO**: Conexión autenticada para actualización de GPS
-- **Validacion de Permisos**: iOS y Android requieren permisos explícitos para ubicación
+Así es cómo generalmente usarás la aplicación:
+
+1. **Inicia sesión** en la mañana
+2. **Ve a Órdenes de Trabajo** para ver qué te asignaron
+3. **Selecciona una orden** y **activa el rastreo de ubicación**
+4. **Ve a Paraderos** para ver los puntos de parada de tu ruta
+5. **Visita cada paradero** en orden y completa el formulario de visita
+6. **Ve a Formularios** si necesitas rellenar información adicional
+7. **Consulta Mi Cuenta** para verificar tu información (cuando sea necesario)
 
 ---
 
-## 📡 Endpoints Principales Utilizados
+## Consejos útiles
 
-- `GET /bus-stops`: Obtener lista de paraderos
-- `GET /visit-forms/user/:userId`: Obtener formularios del usuario
-- `GET /work-orders/user/:userId`: Obtener órdenes del usuario
-- `GET /routes/:routeID`: Obtener datos de una ruta
-- `POST /user/update`: Actualizar información de usuario
-- `POST /user/change-password`: Cambiar contraseña
-- `WS /location-socket`: Socket para actualización de GPS en tiempo real
+- 💡 **Mantén activo el rastreo de ubicación** para mejor seguimiento de tu ruta
+- 💡 **Completa los formularios inmediatamente** después de visitar cada paradero, así no se olvidan detalles
+- 💡 **Refresca las pantallas** si no ves cambios recientes
+- 💡 **Asegúrate de tener conexión a internet** para sincronizar los datos correctamente
+- 💡 **Contacta al administrador** si tienes problemas técnicos o dudas sobre tus órdenes
+
+---
+
+## Soporte y ayuda
+
+Si encuentras algún problema o tienes preguntas:
+- Contacta con el administrador de la aplicación
+- Verifica que tengas conexión a internet estable
+- Intenta cerrar sesión y volver a iniciar sesión
+- Recarga la aplicación completamente
+
+---
+
+**Versión de guía**: 1.0  
+**Última actualización**: Febrero 2026
+
+¡Gracias por usar la aplicación Paraderos! Esperamos que esta guía te sea de utilidad.
